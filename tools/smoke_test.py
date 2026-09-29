@@ -76,6 +76,24 @@ async def main():
         def show(tag, i):
             print(f"{tag:<28}", json.dumps({k: i[k] for k in ["state", "mode", "platform", "gateOpen", "visited", "guardsLeft", "energy", "prompt"]}))
 
+        # 0. Home Isle climbing: walk into each tree from 8 directions. C = climbed, . = refused.
+        #    Slick (mossy) trees refuse from the ground but can be climbed from their own branch.
+        probe = await E("""(()=>{ const Q=window.__psq, out={};
+          for(const id of ['h0','h1','h2','h3','h4','h5']){ const t=Q.tree(id); let row='';
+            for(let k=0;k<8;k++){ const a=k/8*Math.PI*2, x=t.x+Math.cos(a)*1.6, z=t.z+Math.sin(a)*1.6;
+              Q.tp(x,t.base+1.5,z,'air'); Q.face(Math.atan2(t.x-x,t.z-z)); Q.stepNR(40);
+              Q.key('KeyW',true); Q.stepNR(40); Q.key('KeyW',false); row+=Q.info().mode==='climb'?'C':'.'; }
+            let fromBranch='-';
+            if(t.slick){ const b=t.branches.find(b=>b.to); const al=b.start+0.4;
+              Q.tp(t.x+b.ux*al,b.top+0.3,t.z+b.uz*al,'air'); Q.stepNR(20); Q.face(Math.atan2(-b.ux,-b.uz));
+              Q.key('KeyW',true); Q.stepNR(30); Q.key('KeyW',false); fromBranch=Q.info().mode==='climb'?'C':'.'; }
+            out[id]={slick:!!t.slick,ground:row,fromBranch}; }
+          Q.reset(); return out; })()""")
+        for tid, r in probe.items():
+            print(f"climb probe {tid:<3} {'slick' if r['slick'] else 'bare '} ground {r['ground']} from branch {r['fromBranch']}")
+            if r["slick"]: assert r["ground"] == "." * 8 and r["fromBranch"] == "C", f"{tid}: slick tree should refuse from the ground and allow from its branch"
+            else: assert r["ground"] == "C" * 8, f"{tid}: climbable tree refused a climb"
+
         # 1. first hollow: walk to the trunk and search
         await key("KeyW", True); await step(30); await key("KeyW", False)
         await press("KeyE"); await step(60)

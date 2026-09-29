@@ -257,7 +257,7 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 function smooth(e0,e1,x){ const t=clamp((x-e0)/(e1-e0),0,1); return t*t*(3-2*t); }
 function angDiff(a,b){ let d=(b-a)%TAU; if(d>Math.PI)d-=TAU; if(d<-Math.PI)d+=TAU; return d; }
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const rnd=mulberry32(20260929);
+const rnd=mulberry32(20260929), RND=rnd;
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function fmtTime(s){ s=Math.floor(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 const nowS=()=>performance.now()/1000;
@@ -414,10 +414,10 @@ const arcPt=(deg)=>({x:C.x+7.5*Math.cos(deg*Math.PI/180),z:C.z+7.5*Math.sin(deg*
 const pS=arcPt(-90),pA=arcPt(-140),pB=arcPt(170),pCc=arcPt(120),pT=arcPt(70);
 const TREES=[
   {id:'h0',x:0,z:0,r:0.45,h:6.2},
-  {id:'h1',x:-6.5,z:-3,r:0.45,h:6.4},
+  {id:'h1',x:-6.5,z:-3,r:0.45,h:6.4,slick:true},
   {id:'h2',x:5.5,z:-5,r:0.46,h:6.6},
   {id:'h3',x:-5,z:5.5,r:0.47,h:6.8},
-  {id:'h4',x:6,z:2.5,r:0.45,h:6.4},
+  {id:'h4',x:6,z:2.5,r:0.45,h:6.4,slick:true},
   {id:'h5',x:0,z:-8,r:0.44,h:6.0},
   {id:'S',x:pS.x,z:pS.z,r:0.5,h:6.0,grove:true,rope:true},
   {id:'A',x:pA.x,z:pA.z,r:0.48,h:6.5,grove:true},
@@ -428,8 +428,9 @@ const TREES=[
   {id:'E',x:C.x+4,z:C.z+1.5,r:0.47,h:7.0,grove:true,decoy:true}
 ];
 const TREE={}; TREES.forEach(t=>{ TREE[t.id]=t; t.base=terrainY(t.x,t.z); t.top=t.base+t.h; t.branches=[]; t.trunkBottom=t.base-0.8; t.trunkH=t.top+(t.nest?0:0.9)-t.trunkBottom; t.climbMin=t.base+0.45; t.climbMax=t.nest?t.top:t.top-0.5; });
-function mossBand(t,y0,y1){ // slick, mossy bark: can't be climbed
+function mossBand(t,y0,y1,rnd){ // slick, mossy bark: can't be climbed
   if(y1-y0<0.2) return;
+  rnd=rnd||RND;
   const h=y1-y0;
   occluders.push(mesh(new THREE.CylinderGeometry(trunkR(t,y1)*1.04,trunkR(t,y0)*1.05,h,10),MAT.slick,t.x,y0+h/2,t.z));
   const n=Math.max(5,Math.round(h*4));
@@ -505,7 +506,10 @@ TREES.filter(t=>!t.grove).forEach(t=>{
     addBranch(t,best,top,len);
   });
 });
+// slick Home Isle trees: mossy up to their lowest branch, so they're only climbed from a branch
+TREES.filter(t=>t.slick).forEach(t=>{ t.climbMin=Math.min(...t.branches.map(b=>b.top))-0.25; });
 // trunks, roots, canopies, rope bands, slick bark
+const homeMossRnd=mulberry32(4101);
 TREES.forEach(t=>{
   occluders.push(mesh(new THREE.CylinderGeometry(t.r*0.75,t.r*1.12,t.trunkH,9,3),MAT.bark,t.x,t.trunkBottom+t.trunkH/2,t.z));
   mesh(new THREE.CylinderGeometry(t.r*1.05,t.r*1.9,0.9,9),MAT.bark,t.x,t.base+0.1,t.z);
@@ -513,6 +517,7 @@ TREES.forEach(t=>{
     if(t.decoy) mossBand(t,t.base+0.2,t.top);
     else { mossBand(t,t.base+0.2,t.climbMin-0.05); if(!t.nest) mossBand(t,t.climbMax+0.1,t.top); }
   }
+  if(t.slick) mossBand(t,t.base+0.2,t.climbMin-0.05,homeMossRnd);
   if(t.rope){ for(let y=t.base+0.5;y<t.climbMax;y+=0.45){ const r=mesh(new THREE.TorusGeometry(trunkR(t,y)+0.02,0.04,5,14),MAT.rope,t.x,y,t.z); r.rotation.x=Math.PI/2+(Math.sin(y*3)*0.12); r.userData.leaf=true; r.userData.fr=0.8; occluders.push(r); } }
   if(!t.nest) leafCluster(t.x,t.top+0.95,t.z,1.75,7,true);
 });
@@ -1059,7 +1064,8 @@ function doJump(){ P.assist=assistFor(); P.vy=JUMP_V; P.mode='air'; P.platform=n
 function enterClimb(t,a){ P.mode='climb'; P.climbTree=t; P.climbA=a; P.vx=P.vy=P.vz=0; P.platform=null; P.y=clamp(P.y,t.climbMin,t.climbMax); SFX.grab(); }
 function canGrab(t){
   if(t.decoy) return false;
-  if(!t.grove) return P.y>=t.climbMin-0.35;
+  if(t.slick) return P.mode==='ground'&&!!P.platform&&P.platform.tree===t;
+  if(!t.grove) return P.mode==='ground'||P.y>=t.climbMin-0.35;
   if(P.mode!=='ground') return false;
   if(P.platform&&P.platform.tree===t) return true;
   return !!t.rope&&!P.platform;
@@ -1074,7 +1080,7 @@ function trunkCollide(mx,mz,ml){
       const inward=-(mx*dx+mz*dz)/d;
       if(ml>0.2&&inward>0.35&&!(P.climbCool>0&&P.climbCoolTree===t)){
         if(canGrab(t)){ enterClimb(t,Math.atan2(dz,dx)); return; }
-        if(P.mode==='ground'&&once('slick',4)){ toast(t.grove?(P.platform?'Mossy bark is too slick to climb. Only bare bark will hold you.':'Mossy bark! Too slick to climb from the ground. Try the rope-wrapped tree.'):'Too slick to climb from here.',3.4); SFX.slip(); }
+        if(P.mode==='ground'&&once('slick',4)){ toast(t.grove?(P.platform?'Mossy bark is too slick to climb. Only bare bark will hold you.':'Mossy bark! Too slick to climb from the ground. Try the rope-wrapped tree.'):'Mossy bark! Too slick to climb from the ground. Leap onto one of its branches from a neighbouring tree.',3.4); SFX.slip(); }
       }
       P.x=t.x+dx/d*R; P.z=t.z+dz/d*R;
     }
@@ -1590,9 +1596,9 @@ window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z
   stepNR:(n)=>{ for(let i=0;i<n;i++) update(1/60); },
   key:(code,down)=>{ if(down){ keys.add(code); if(code==='Space') jumpBuffer=0.13; if(code==='KeyE') actPressed=true; if(code==='KeyF') attackPressed=true; if(code==='KeyC') setCamMode(cam.mode==='follow'?'free':'follow'); } else keys.delete(code); },
   giveAll:()=>{ ITEMS.forEach(g=>{ gear[g]=true; equip(g,false); }); refreshKit(); },
-  tree:(id)=>{ const t=TREE[id]; return {x:t.x,z:t.z,base:t.base,climbMin:t.climbMin,climbMax:t.climbMax,branches:t.branches.map(b=>({to:b.to,top:+b.top.toFixed(2),angle:+b.angle.toFixed(3),rotten:b.rotten,chain:b.chain,sym:b.sym,cx:b.cx,cz:b.cz,hl:b.hl,ux:b.ux,uz:b.uz,start:b.start}))}; },
+  tree:(id)=>{ const t=TREE[id]; return {x:t.x,z:t.z,base:t.base,slick:!!t.slick,climbMin:t.climbMin,climbMax:t.climbMax,branches:t.branches.map(b=>({to:b.to,top:+b.top.toFixed(2),angle:+b.angle.toFixed(3),rotten:b.rotten,chain:b.chain,sym:b.sym,cx:b.cx,cz:b.cz,hl:b.hl,ux:b.ux,uz:b.uz,start:b.start}))}; },
   face:(a)=>{ P.facing=a; cam.yaw=a+Math.PI; rig.root.rotation.y=a; },
-  help:()=>{ toggleHelp(); return state; }, seq:()=>seq.slice(), assets:()=>Object.assign({},assetState), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead}))};
+  help:()=>{ toggleHelp(); return state; }, reset:()=>startGame(), seq:()=>seq.slice(), assets:()=>Object.assign({},assetState), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead}))};
 requestAnimationFrame(frame);
 }
 })();
