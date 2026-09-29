@@ -27,6 +27,7 @@ PREVIEWS = ROOT / "art" / "previews"
 
 def reset(seed=1):
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    _mats.clear()
     random.seed(seed)
 
 
@@ -156,12 +157,37 @@ def join(name, parts):
     return o
 
 
-def preview(name, target, cam_loc, size=640, ground=None):
-    """Cycles render to art/previews/<name>.png. `ground` = (hex, z) adds a render-only floor."""
+def join_at(name, parts, origin=(0, 0, 0)):
+    """Join `parts` like `join`, then move the object's origin to `origin` (a pivot the game
+    rotates about) without moving the geometry. The node keeps an identity rotation."""
+    obj = join(name, parts)
+    off = Vector(origin)
+    for v in obj.data.vertices:
+        v.co -= off
+    obj.location = off
+    return obj
+
+
+def tri_count(objs):
+    return sum(len(p.vertices) - 2 for o in objs if o.type == "MESH" for p in o.data.polygons)
+
+
+def clear_objects():
+    """Delete every object and orphan mesh, keeping the cached materials."""
+    for o in list(bpy.data.objects):
+        bpy.data.objects.remove(o)
+    for m in list(bpy.data.meshes):
+        if not m.users:
+            bpy.data.meshes.remove(m)
+
+
+def preview(name, target, cam_loc, size=640, ground=None, res=None, fov_y=None, lens=50, ground_size=40):
+    """Cycles render to art/previews/<name>.png. `ground` = (hex, z) adds a render-only floor.
+    `res` = (w, h) overrides the square `size`; `fov_y` (degrees) matches the game camera."""
     scene = bpy.context.scene
     extras = []
     if ground:
-        bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, ground[1]))
+        bpy.ops.mesh.primitive_plane_add(size=ground_size, location=(0, 0, ground[1]))
         g = bpy.context.object
         g.data.materials.append(mat("PreviewGround", ground[0], 0.4))
         extras.append(g)
@@ -170,7 +196,10 @@ def preview(name, target, cam_loc, size=640, ground=None):
     aim.location = target
     bpy.ops.object.camera_add(location=cam_loc)
     cam = bpy.context.object
-    cam.data.lens = 50
+    cam.data.lens = lens
+    if fov_y:
+        cam.data.sensor_fit = "VERTICAL"
+        cam.data.angle_y = math.radians(fov_y)
     cam.constraints.new("TRACK_TO").target = aim
     scene.camera = cam
     bpy.ops.object.light_add(type="SUN", location=(0, 0, 10), rotation=(math.radians(50), 0, math.radians(-35)))
@@ -187,7 +216,7 @@ def preview(name, target, cam_loc, size=640, ground=None):
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
     scene.cycles.samples = 48
-    scene.render.resolution_x = scene.render.resolution_y = size
+    scene.render.resolution_x, scene.render.resolution_y = res or (size, size)
     PREVIEWS.mkdir(parents=True, exist_ok=True)
     scene.render.filepath = str(PREVIEWS / f"{name}.png")
     bpy.ops.render.render(write_still=True)
@@ -196,9 +225,11 @@ def preview(name, target, cam_loc, size=640, ground=None):
 
 
 def export(name, obj):
+    """Export `obj` (or a list of objects, e.g. a root empty and its children) as one GLB."""
     EXPORTS.mkdir(parents=True, exist_ok=True)
     bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    for o in obj if isinstance(obj, (list, tuple)) else [obj]:
+        o.select_set(True)
     path = EXPORTS / f"{name}.glb"
     bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB", use_selection=True)
     return path
