@@ -158,8 +158,14 @@ async def main():
             await step(10)
             if (await info())["platform"] == "nest": break
         await key("KeyW", False)
-        await press("KeyE"); await step(170)
+        await press("KeyE"); await step(130)
+        assert await E("!document.getElementById('gag').hidden && document.getElementById('gag2').hidden"), "the 'all D's' line should show first"
+        await step(120)
+        assert await E("!document.getElementById('gag2').hidden"), "DEEZ NUTS should follow two seconds later"
+        await page.screenshot(path=str(OUT / "05_deez.png"))
+        await step(160)
         i = await info(); show("chest", i)
+        assert await E("document.getElementById('gag').hidden"), "the pop-up should clear for the tally"
         await E("window.__psq.step(1)")
         await page.screenshot(path=str(OUT / "05_win.png"))
 

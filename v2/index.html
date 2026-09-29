@@ -123,7 +123,14 @@ body:not(.touch) .touch-only{display:none}
   .controls{font-size:13px;gap:7px 12px;margin:12px 0 16px}
   #toast{top:max(30vh,230px)}
 }
+#gag{position:fixed;left:50%;top:18vh;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));box-sizing:border-box;padding:18px 22px 20px;text-align:center;color:var(--ink);background:var(--parchment);border:3px solid var(--brass);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+#gag p{margin:0}
+#gag1{font:800 20px/1.4 var(--body);text-wrap:balance}
+#gag2{margin-top:12px!important;font-family:var(--display);font-size:clamp(52px,11vw,96px);line-height:1;color:var(--rust);text-shadow:0 3px 0 var(--rust-deep);animation:shake .09s linear infinite}
+@keyframes shake{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(-4px,2px) rotate(-2deg)}50%{transform:translate(3px,-3px) rotate(1.5deg)}75%{transform:translate(-2px,-1px) rotate(-1deg)}100%{transform:translate(4px,2px) rotate(2deg)}}
+@keyframes throb{50%{transform:scale(1.06)}}
 @media (prefers-reduced-motion:reduce){
+  #gag2{animation:throb 1s ease-in-out infinite}
   #toast,#prompt,.slot{transition:none}
   .slot.pop{animation:none}
   .energy.low #efill{animation:none}
@@ -184,6 +191,11 @@ body:not(.touch) .touch-only{display:none}
     <button class="btn" id="startBtn" type="button">Set sail</button>
     <p class="credit">Stand-in art · sound effects only, music coming later</p>
   </div>
+</div>
+
+<div id="gag" role="status" aria-live="assertive" hidden>
+  <p id="gag1">Congratulations on your efforts... you get all D's.</p>
+  <p id="gag2" hidden>DEEZ NUTS!!!!</p>
 </div>
 
 <div id="win" class="overlay" hidden>
@@ -817,7 +829,8 @@ const SFX=(()=>{
     gate(){ tone(200,0.4,'sawtooth',0.035,140); [392,523.25,659.25].forEach((f,i)=>tone(f,0.25,'triangle',0.1,null,0.25+i*0.1)); },
     whirl(){ noise(0.6,0.12,300); },
     warn(){ tone(660,0.08,'square',0.04); },
-    win(){ [392,523.25,659.25,783.99,659.25,1046.5].forEach((f,i)=>tone(f,0.32,'triangle',0.13,null,i*0.13)); }
+    win(){ [392,523.25,659.25,783.99,659.25,1046.5].forEach((f,i)=>tone(f,0.32,'triangle',0.13,null,i*0.13)); },
+    deez(){ noise(0.18,0.4,700); [392,392,523.25].forEach((f,i)=>tone(f,0.2,'sawtooth',0.08,null,i*0.12)); tone(783.99,0.7,'square',0.07,null,0.36); noise(0.3,0.3,4000,0.36,'highpass'); }
   };
 })();
 
@@ -972,7 +985,7 @@ $('resumeBtn').addEventListener('click',()=>togglePause());
 
 function startGame(){
   resetGame(); state='play';
-  ui.title.hidden=true; ui.win.hidden=true; ui.hud.hidden=false; ui.touch.hidden=!isTouch;
+  ui.title.hidden=true; ui.win.hidden=true; ui.hud.hidden=false; ui.touch.hidden=!isTouch; $('gag').hidden=true;
   if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
   toast('Something glints in that hollow. Walk up to it with W and press E.',3.6,true);
 }
@@ -1388,6 +1401,7 @@ function resolveHollow(h){
     refreshKit(item);
   } else { toast(junkPool.pop()||'Just an old acorn cap.',2.8,true); SFX.junk(); refreshKit(); }
 }
+const GAG_AT=1.6; // the Chestnut has finished rising by now
 function tryChest(){ state='winning'; winT=0; SFX.win(); refreshKit('nut'); setPrompt(''); }
 
 /* ================= objectives ================= */
@@ -1556,7 +1570,9 @@ function update(dt){
     if(winT>0.4){ prize.visible=true; const k=clamp((winT-0.4)/1.1,0,1); prize.position.y=0.2+k*0.85; prize.rotation.y+=dt*4; }
     chestGlow.intensity=2.2;
     if(winT>0.5&&winT-dt<=0.5) burst(sparks,chest.position.x,chest.position.y+0.7,chest.position.z,30,2.5,5);
-    if(winT>2.3){ state='win'; ui.hud.hidden=true; ui.touch.hidden=true; $('winTime').textContent=fmtTime(elapsed); $('winSplash').textContent=splashes; $('winNuts').textContent=nutsEaten; $('winCrabs').textContent=crabsBeaten; ui.win.hidden=false; setObjective(currentObjective()); }
+    if(winT>GAG_AT&&winT-dt<=GAG_AT){ $('gag').hidden=false; $('gag2').hidden=true; }
+    if(winT>GAG_AT+2&&winT-dt<=GAG_AT+2){ $('gag2').hidden=false; SFX.deez(); burst(sparks,chest.position.x,chest.position.y+1,chest.position.z,30,3,6); }
+    if(winT>GAG_AT+4.6){ $('gag').hidden=true; state='win'; ui.hud.hidden=true; ui.touch.hidden=true; $('winTime').textContent=fmtTime(elapsed); $('winSplash').textContent=splashes; $('winNuts').textContent=nutsEaten; $('winCrabs').textContent=crabsBeaten; ui.win.hidden=false; setObjective(currentObjective()); }
   }
   updateCrabs(dt);
   jumpBuffer=Math.max(0,jumpBuffer-dt); actPressed=false; attackPressed=false;
