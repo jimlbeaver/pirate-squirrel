@@ -360,7 +360,10 @@ const SYMS={
   skull:{name:'Skull',parts:[{d:'M50 10 C27 10 16 26 16 44 C16 58 24 66 32 70 L32 86 L68 86 L68 70 C76 66 84 58 84 44 C84 26 73 10 50 10 Z M29 45 a9 10 0 1 0 18 0 a9 10 0 1 0 -18 0 Z M53 45 a9 10 0 1 0 18 0 a9 10 0 1 0 -18 0 Z M44 64 L50 55 L56 64 Z',f:1}]},
   star:{name:'Star',parts:[{d:'M50 6 L61 37 L94 37 L67 57 L77 90 L50 70 L23 90 L33 57 L6 37 L39 37 Z',f:1}]},
   moon:{name:'Moon',parts:[{d:'M10 52 a38 38 0 1 0 76 0 a38 38 0 1 0 -76 0 Z',f:1},{d:'M34 38 a31 31 0 1 0 62 0 a31 31 0 1 0 -62 0 Z',f:1,bg:1}]},
-  shell:{name:'Shell',parts:[{d:'M50 90 C34 80 10 56 12 38 C14 19 33 9 50 9 C67 9 86 19 88 38 C90 56 66 80 50 90 Z',f:1},{d:'M50 84 L50 17 M50 84 L32 19 M50 84 L68 19 M50 84 L18 38 M50 84 L82 38',s:1,bg:1}]}
+  shell:{name:'Shell',parts:[{d:'M50 90 C34 80 10 56 12 38 C14 19 33 9 50 9 C67 9 86 19 88 38 C90 56 66 80 50 90 Z',f:1},{d:'M50 84 L50 17 M50 84 L32 19 M50 84 L68 19 M50 84 L18 38 M50 84 L82 38',s:1,bg:1}]},
+  compass:{name:'Compass',parts:[{d:'M10 50 a40 40 0 1 0 80 0 a40 40 0 1 0 -80 0',s:1},{d:'M50 12 L59 41 L88 50 L59 59 L50 88 L41 59 L12 50 L41 41 Z',f:1}]},
+  parrot:{name:'Parrot',parts:[{d:'M24 94 C18 70 20 42 36 26 C48 14 66 14 74 26 C68 36 64 48 60 60 C56 72 54 84 56 94 Z',f:1},{d:'M34 28 L24 8 L42 20 L44 2 L54 18 Z',f:1},{d:'M70 20 C84 18 95 30 93 46 C92 55 86 62 78 65 C83 56 83 48 78 44 C74 41 69 43 64 46 Z',f:1},{d:'M44 36 a6 6 0 1 0 12 0 a6 6 0 1 0 -12 0',f:1,bg:1}]},
+  key:{name:'Key',parts:[{d:'M10 50 a17 17 0 1 0 34 0 a17 17 0 1 0 -34 0',s:1},{d:'M44 50 L90 50 M80 50 L80 68 M67 50 L67 62',s:1}]}
 };
 const SYM_KEYS=Object.keys(SYMS);
 function drawSym(g,key,x,y,size,ink,bg){
@@ -491,18 +494,22 @@ HOME_LINKS.forEach(([a,b,rise])=>{
 const H0=TREE.h0;
 const spawnBranch=addBranch(H0,Math.PI/2+0.35,H0.base+3.4,3.0,{to:'sea'});
 // Grove: [from, to, launch height above base, chain step or -1 for a rotten decoy]
+// Every chain tree has 3-4 signed launches, one true. Decoys aimed at D/E get a rotten signed
+// partner there so they look like bridges; decoys skipping ahead along the ring have none.
 const GROVE_LINKS=[
-  ['S','A',2.8,0],['S','D',2.0,-1],['S','E',3.6,-1],
-  ['A','B',4.2,1],['A','E',3.3,-1],
-  ['B','Cc',5.4,2],['B','E',4.7,-1],
-  ['Cc','T',6.4,3],['Cc','D',5.8,-1]
+  ['S','A',2.8,0],['S','D',2.0,-1],['S','E',3.6,-1],['S','B',4.4,-1],
+  ['A','B',4.2,1],['A','E',2.9,-1],['A','Cc',5.2,-1],
+  ['B','Cc',5.4,2],['B','E',4.7,-1],['B','T',6.2,-1],
+  ['Cc','T',6.4,3],['Cc','D',5.8,-1],['Cc','A',4.4,-1]
 ];
 const CHAIN=['S','A','B','Cc','T'];
 GROVE_LINKS.forEach(([a,b,rel,step])=>{
   const A=TREE[a],B=TREE[b]; const d=Math.hypot(B.x-A.x,B.z-A.z), ang=Math.atan2(B.z-A.z,B.x-A.x);
   const top=A.base+rel;
-  if(step>=0){ const len=(d-2.4)/2; const p=addBranch(A,ang,top,len,{to:b,chain:step}); addTag(p); addBranch(B,ang+Math.PI,top-0.2,len,{to:a}); }
-  else { const p=addBranch(A,ang,top,2.2,{to:b,rotten:true}); addTag(p); }
+  if(step>=0){ const len=(d-2.4)/2; const p=addBranch(A,ang,top,len,{to:b,chain:step}); addTag(p);
+    const q=addBranch(B,ang+Math.PI,top-0.2,len,{to:a}); if(!B.nest){ q.arrive=true; addTag(q); } }
+  else { const p=addBranch(A,ang,top,2.2,{to:b,rotten:true}); addTag(p);
+    if(B.decoy) addTag(addBranch(B,ang+Math.PI,top-0.2,2.0,{to:a,rotten:true})); }
 });
 TREES.filter(t=>t.grove&&!t.decoy).forEach(t=>{
   const tops=t.branches.map(b=>b.top);
@@ -884,12 +891,17 @@ const P={x:0,y:0,z:0,vx:0,vy:0,vz:0,mode:'ground',facing:0,coyote:0,glide:0,glid
 let lastSafe={x:0,y:0,z:0};
 function once(key,sec){ const t=nowS(); if(t-(msgAt[key]||-99)<sec) return false; msgAt[key]=t; return true; }
 function spawnPoint(){ const b=spawnBranch, a=0.2; return {x:b.cx+b.ux*a,y:b.top,z:b.cz+b.uz*a}; }
+function paintSym(b,key){ b.sym=key; b.sprite.material.map=symTex[key]; b.sprite.material.needsUpdate=true; }
+const SIGNED_TREES=['S','A','B','Cc','D','E'];
 function assignSymbols(){
   seq=shuffle(SYM_KEYS.slice()).slice(0,4);
-  ['S','A','B','Cc'].forEach((id,k)=>{
-    const others=shuffle(SYM_KEYS.filter(s=>s!==seq[k]));
-    TREE[id].branches.filter(b=>b.sprite).forEach(b=>{ const key=b.chain===k?seq[k]:others.pop(); b.sym=key; b.sprite.material.map=symTex[key]; b.sprite.material.needsUpdate=true; });
+  CHAIN.slice(0,4).forEach((id,k)=>{
+    // the last pick is another tree's true sign: right sign, wrong tree
+    const lure=shuffle(seq.filter(s=>s!==seq[k]))[0];
+    const others=shuffle(SYM_KEYS.filter(s=>s!==seq[k]&&s!==lure)); others.push(lure);
+    TREE[id].branches.filter(b=>b.sprite).forEach(b=>paintSym(b,b.chain===k||b.arrive?seq[k]:others.pop()));
   });
+  ['D','E'].forEach(id=>{ const pool=shuffle(SYM_KEYS.slice()); TREE[id].branches.filter(b=>b.sprite).forEach(b=>paintSym(b,pool.pop())); });
   buildMap();
 }
 function restoreBranch(b){ b.broken=false; b.fallT=-1; b.creak=0; b.parts.forEach(o=>{ o.visible=true; o.position.copy(o.userData.home.p); o.rotation.copy(o.userData.home.r); }); }
@@ -1068,8 +1080,8 @@ function clampInto(p){
   P.vx*=0.5; P.vz*=0.5;
 }
 function assistFor(){ // leap from a branch toward its partner branch on the next tree
-  const p=P.platform; if(!p||p.kind!=='box'||!p.to||!TREE[p.to]) return null;
-  const lb=TREE[p.to].branches.find(b=>b.to===p.tree.id&&!b.broken); if(!lb) return null;
+  const p=P.platform; if(!p||p.kind!=='box'||!p.to||!TREE[p.to]||p.rotten) return null;
+  const lb=TREE[p.to].branches.find(b=>b.to===p.tree.id&&!b.broken&&!b.rotten); if(!lb) return null;
   const a=lb.hl-0.8, x=lb.cx+lb.ux*a, z=lb.cz+lb.uz*a, dx=x-P.x, dz=z-P.z, d=Math.hypot(dx,dz);
   if(d>9||Math.abs(angDiff(P.facing,Math.atan2(dx,dz)))>0.7) return null;
   return {x,z,top:lb.top};
@@ -1590,13 +1602,13 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(0.05,(now-l
 
 /* ================= boot + hot-reload state ================= */
 resetGame();
-if(saved&&saved.v===3&&saved.state==='play'){
+if(saved&&saved.v===4&&saved.state==='play'){
   startGame();
   gear=saved.gear||{}; ITEMS.forEach(g=>{ if(gear[g]) equip(g,false); });
   (saved.searched||[]).forEach((s,i)=>{ if(hollows[i]&&s){ hollows[i].searched=true; hollows[i].glint.visible=false; } });
   splashes=saved.splashes||0; elapsed=saved.elapsed||0; visitedTI=!!saved.visited; energy=saved.energy==null?100:saved.energy; nutsEaten=saved.nuts||0;
   if(saved.gateOpen){ gateOpen=true; gateT=1; gateLeaves.forEach(l=>l.g.rotation.y=-l.side*1.7); }
-  if(saved.seq){ seq=saved.seq; ['S','A','B','Cc'].forEach(id=>TREE[id].branches.filter(b=>b.sprite).forEach((b,j)=>{ const key=(saved.syms&&saved.syms[id]&&saved.syms[id][j])||b.sym; b.sym=key; b.sprite.material.map=symTex[key]; b.sprite.material.needsUpdate=true; })); buildMap(); }
+  if(saved.seq){ seq=saved.seq; SIGNED_TREES.forEach(id=>TREE[id].branches.filter(b=>b.sprite).forEach((b,j)=>{ const key=(saved.syms&&saved.syms[id]&&saved.syms[id][j])||b.sym; if(SYMS[key]) paintSym(b,key); })); buildMap(); }
   (saved.deadCrabs||[]).forEach((d,i)=>{ if(d&&crabs[i]){ crabs[i].dead=true; crabs[i].g.visible=false; } }); guardsLeft=crabs.filter(c=>!c.dead).length; crabsBeaten=crabs.length-guardsLeft; if(guardsLeft===0){ barLogs.forEach(l=>l.visible=false); barT=2; }
   if(saved.boat) Object.assign(boat,saved.boat);
   if(saved.P){ Object.assign(P,saved.P,{vx:0,vy:0,vz:0,platform:null}); if(P.mode!=='boat') P.mode='air'; }
@@ -1604,7 +1616,7 @@ if(saved&&saved.v===3&&saved.state==='play'){
   if(saved.tiLanding) tiLanding=saved.tiLanding;
   toastQ.length=0; refreshKit(); refreshStats(); refreshEnergy(); setCamMode('follow');
 }
-if(hot&&hot.snapshot) hot.snapshot(()=>({v:3,state:['play','searching','splash','paused','map','ko','help'].includes(state)?'play':'title',gear:Object.assign({},gear),searched:hollows.map(h=>h.searched),splashes,elapsed,visited:visitedTI,energy,nuts:nutsEaten,gateOpen,seq,syms:{S:TREE.S.branches.filter(b=>b.sprite).map(b=>b.sym),A:TREE.A.branches.filter(b=>b.sprite).map(b=>b.sym),B:TREE.B.branches.filter(b=>b.sprite).map(b=>b.sym),Cc:TREE.Cc.branches.filter(b=>b.sprite).map(b=>b.sym)},deadCrabs:crabs.map(c=>c.dead),boat:{x:boat.x,z:boat.z,h:boat.h,speed:0},P:{x:P.x,y:P.y,z:P.z,facing:P.facing,mode:P.mode==='boat'?'boat':'air'},lastSafe,tiLanding}));
+if(hot&&hot.snapshot) hot.snapshot(()=>({v:4,state:['play','searching','splash','paused','map','ko','help'].includes(state)?'play':'title',gear:Object.assign({},gear),searched:hollows.map(h=>h.searched),splashes,elapsed,visited:visitedTI,energy,nuts:nutsEaten,gateOpen,seq,syms:Object.fromEntries(SIGNED_TREES.map(id=>[id,TREE[id].branches.filter(b=>b.sprite).map(b=>b.sym)])),deadCrabs:crabs.map(c=>c.dead),boat:{x:boat.x,z:boat.z,h:boat.h,speed:0},P:{x:P.x,y:P.y,z:P.z,facing:P.facing,mode:P.mode==='boat'?'boat':'air'},lastSafe,tiLanding}));
 
 // small test hook used by automated smoke tests
 window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),energy:Math.round(energy),boat:{x:+boat.x.toFixed(2),z:+boat.z.toFixed(2),h:+boat.h.toFixed(3),speed:+boat.speed.toFixed(2)},gear:Object.assign({},gear),gateOpen,visited:visitedTI,guardsLeft,prompt:promptShown,objective:objShown,cam:cam.mode,platform:P.platform?(P.platform.pier?'pier':P.platform===nestPlat?'nest':(P.platform.tree?P.platform.tree.id+'>'+P.platform.to+(P.platform.rotten?'(rotten)':''):'?')):null}),

@@ -135,6 +135,19 @@ async def main():
 
         # 5. puzzle: leap from each correct branch to the next tree
         chain = ["S", "A", "B", "Cc", "T"]
+        seq = await E("window.__psq.seq()")
+        for k in range(4):
+            t = await E(f"window.__psq.tree('{chain[k]}')")
+            launches = [b for b in t["branches"] if b["sym"] and b["to"] and b["chain"] == k or b["rotten"]]
+            true = [b for b in launches if not b["rotten"]]
+            assert 3 <= len(launches) <= 4 and len(true) == 1 and true[0]["sym"] == seq[k], f"{chain[k]}: want 3-4 signed launches, one true"
+            assert any(b["sym"] in seq and b["sym"] != seq[k] for b in launches if b["rotten"]), f"{chain[k]}: no right-sign-wrong-tree decoy"
+        for tid in ("D", "E"):
+            br = (await E(f"window.__psq.tree('{tid}')"))["branches"]
+            assert len(br) >= 2 and all(b["rotten"] and b["sym"] for b in br), f"{tid}: want signed rotten branches"
+        t = await E("window.__psq.tree('T')")
+        await E(f"window.__psq.tp({t['x']},{t['base']+10.8},{t['z']},'air')"); await E("window.__psq.face(3.6)"); await step(40)
+        await page.screenshot(path=str(OUT / "04b_grove.png"))
         for k in range(4):
             t = await E(f"window.__psq.tree('{chain[k]}')")
             br = [b for b in t["branches"] if b["chain"] == k][0]
@@ -142,7 +155,8 @@ async def main():
             await E(f"window.__psq.tp({br['cx']+br['ux']*a},{br['top']+0.3},{br['cz']+br['uz']*a},'air')"); await step(10)
             await E(f"window.__psq.face(Math.atan2({br['ux']},{br['uz']}))")
             await key("KeyW", True); await key("Space", True); await step(4); await key("KeyW", False); await step(70); await key("Space", False); await step(20)
-            show(f"leap {chain[k]} -> {chain[k+1]}", await info())
+            i = await info(); show(f"leap {chain[k]} -> {chain[k+1]}", i)
+            assert (i["platform"] or "").startswith(chain[k+1] + ">"), f"leap from {chain[k]} should land on {chain[k+1]}"
 
         # 6. a rotten branch should snap
         s = await E("window.__psq.tree('S')")
