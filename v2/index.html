@@ -156,7 +156,7 @@ body:not(.touch) .touch-only{display:none}
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="prompt" class="panel"><kbd id="promptKey" class="desk-only">E</kbd><span id="promptText"></span><div class="bar"><i id="promptBar"></i></div></div>
-  <div id="hint" class="desk-only">W/S move, A/D turn · Space jump, hold to glide · E act · F tail-swipe · C follow cam · drag or arrows to look · M map · H help · Esc pause</div>
+  <div id="hint" class="desk-only">W/S or ↑/↓ move, A/D or ←/→ turn · Space jump, hold to glide · E act · F tail-swipe · C follow cam · drag or Shift+arrows to look · M map · H help · Esc pause</div>
 </div>
 
 <div id="title" class="overlay">
@@ -165,11 +165,11 @@ body:not(.touch) .touch-only{display:none}
     <h1>Quest for the Chest Nuts<small id="version">v2.1</small></h1>
     <p class="lede">No pirate gear, no pirate ship. Search Home Isle's hollows for your kit and the treasure map, get past the Pirates Only gate, eat your way across the sea, beat the crab guards, and pick the right branches up to the Chestnut.</p>
     <div class="controls desk-only">
-      <kbd>W A S D</kbd><span>W and S go forward and back, A and D turn. Same on the boat.</span>
+      <kbd>W A S D</kbd><span>W and S go forward and back, A and D turn. Arrow keys work too. Same on the boat.</span>
       <kbd>Space</kbd><span>Jump. Hold it while falling to glide.</span>
       <kbd>E</kbd><span>Search hollows, open the gate, board, go ashore. Mossy bark is too slick to climb.</span>
       <kbd>F</kbd><span>Tail-swipe a crab. Landing on one works too.</span>
-      <kbd>C</kbd><span>Snap the camera behind you. Drag or use arrow keys to look around.</span>
+      <kbd>C</kbd><span>Snap the camera behind you. Drag, or hold Shift with the arrow keys, to look around.</span>
       <kbd>M</kbd><span>Read the treasure map, once you have it.</span>
       <kbd>H or ?</kbd><span>Show these controls. Esc or P pauses.</span>
     </div>
@@ -909,9 +909,12 @@ let jumpBuffer=0, actPressed=false, attackPressed=false, touchJump=false;
 const joy={id:null,ox:0,oy:0,x:0,y:0}, look={id:null,lx:0,ly:0};
 let dragging=false, lmx=0, lmy=0;
 function jumpHeld(){ return keys.has('Space')||touchJump; }
+function shiftHeld(){ return keys.has('ShiftLeft')||keys.has('ShiftRight'); }
 function readInput(){
   let x=0,y=0;
   if(keys.has('KeyW'))y+=1; if(keys.has('KeyS'))y-=1; if(keys.has('KeyD'))x+=1; if(keys.has('KeyA'))x-=1;
+  if(!shiftHeld()){ if(keys.has('ArrowUp'))y+=1; if(keys.has('ArrowDown'))y-=1; if(keys.has('ArrowRight'))x+=1; if(keys.has('ArrowLeft'))x-=1; }
+  x=clamp(x,-1,1); y=clamp(y,-1,1);
   if(joy.id!==null){ x+=joy.x; y+=joy.y; }
   const l=Math.hypot(x,y); if(l>1){x/=l;y/=l;} return {x,y};
 }
@@ -1470,9 +1473,11 @@ function updateCamera(dt){
   const tgt=new THREE.Vector3(P.x,P.y+(P.mode==='boat'?1.0:0.55),P.z);
   camTarget.lerp(tgt,1-Math.exp(-10*dt));
   if(cam.mode==='follow'&&state!=='splash'&&state!=='ko') cam.yaw+=angDiff(cam.yaw,followYaw())*Math.min(1,(P.mode==='boat'?4:9)*dt);
-  let rot=0; if(keys.has('ArrowLeft')) rot+=1; if(keys.has('ArrowRight')) rot-=1;
-  if(rot){ if(cam.mode==='follow') setCamMode('free'); cam.yaw+=rot*2.2*dt; }
-  if(keys.has('ArrowUp')) cam.pitch=clamp(cam.pitch+dt,-0.15,1.25); if(keys.has('ArrowDown')) cam.pitch=clamp(cam.pitch-dt,-0.15,1.25);
+  if(shiftHeld()){
+    let rot=0; if(keys.has('ArrowLeft')) rot+=1; if(keys.has('ArrowRight')) rot-=1;
+    if(rot){ if(cam.mode==='follow') setCamMode('free'); cam.yaw+=rot*2.2*dt; }
+    if(keys.has('ArrowUp')) cam.pitch=clamp(cam.pitch+dt,-0.15,1.25); if(keys.has('ArrowDown')) cam.pitch=clamp(cam.pitch-dt,-0.15,1.25);
+  }
   const dist=P.mode==='boat'?Math.max(cam.dist,8.5):cam.dist;
   let pitch=cam.pitch, clr=1;
   for(let i=0;i<0;i++){ const c=Math.cos(pitch); clr=trunkClear(Math.sin(cam.yaw)*c*dist,Math.sin(pitch)*dist,Math.cos(cam.yaw)*c*dist); if(clr>=1||dist*clr>3.2||pitch>1.2) break; pitch+=0.15; }
