@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quest for the Chest Nuts v2</title>
+<title>Quest for the Chest Nuts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@600;700;800&display=swap">
@@ -160,8 +160,8 @@ body:not(.touch) .touch-only{display:none}
 
 <div id="title" class="overlay">
   <div class="card">
-    <div class="eyebrow">OFWG Productions presents</div>
-    <h1>Quest for the Chest Nuts<small>Prototype, version 2</small></h1>
+    <div class="eyebrow">Sloppy Beaver Productions presents</div>
+    <h1>Quest for the Chest Nuts<small id="version">v2.1</small></h1>
     <p class="lede">No pirate gear, no pirate ship. Search Home Isle's hollows for your kit and the treasure map, get past the Pirates Only gate, eat your way across the sea, beat the crab guards, and pick the right branches up to the Chestnut.</p>
     <div class="controls desk-only">
       <kbd>W A S D</kbd><span>W and S go forward and back, A and D turn. Same on the boat.</span>
@@ -179,7 +179,7 @@ body:not(.touch) .touch-only{display:none}
       <kbd>Right thumb</kbd><span>Drag to look. Follow cam button snaps it back.</span>
     </div>
     <button class="btn" id="startBtn" type="button">Set sail</button>
-    <p class="credit">Greybox prototype · sound effects only, music coming later</p>
+    <p class="credit">Stand-in art · sound effects only, music coming later</p>
   </div>
 </div>
 
@@ -235,6 +235,8 @@ if (hot && hot.ready) hot.ready(init); else init((hot && hot.data) || {});
 function init(saved){
 saved = saved || {};
 const $ = id => document.getElementById(id);
+const VERSION='2.1';
+$('version').textContent='v'+VERSION; document.title='Quest for the Chest Nuts v'+VERSION;
 if (!window.THREE){ $('loadError').hidden = false; $('title').hidden = true; return; }
 
 /* ================= utils ================= */
