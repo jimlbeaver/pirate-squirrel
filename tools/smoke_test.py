@@ -102,6 +102,9 @@ async def main():
 
         # 2. with the full kit and map, the gate opens and the boat can be boarded
         await E("window.__psq.giveAll()")
+        assert await E("window.__psq.map()") == "map", "map should open once the squirrel has it"
+        await page.screenshot(path=str(OUT / "02_map.png"))
+        await E("window.__psq.map()")
         g = await E("window.__psq.gate()")
         x, z = g["pdx"] * (g["shoreD"] - 0.6), g["pdz"] * (g["shoreD"] - 0.6)
         await E(f"window.__psq.tp({x},1.5,{z},'air')"); await E(f"window.__psq.face(Math.atan2({g['pdx']},{g['pdz']}))"); await step(20)
