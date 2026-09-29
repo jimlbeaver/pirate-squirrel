@@ -7,7 +7,7 @@ Browser game prototype spun off from the OFWG Productions pirate squirrel short.
 | `v2/` | **Current version.** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle, treasure chest). |
 | `v1/` | First playable greybox, kept as a reference. |
 | `refs/` | Concept art: plain squirrel and full pirate gear. |
-| `vendor/` | Local copy of three.js r128, used automatically if the CDN is unreachable. |
+| `vendor/` | Local copies of three.js r128 and its `GLTFLoader`, used automatically if the CDNs are unreachable. |
 | `tools/` | Headless smoke test (Playwright) and a Blender asset-pipeline starter script. |
 | `PLAN.md` | Original game plan. |
 | `DESIGN.md` | How v2 plays, the tuning numbers, and a map of the code. |
@@ -60,7 +60,7 @@ Touch: left thumb drags to move and turn, right thumb drags to look, with Jump, 
 
 ## Smoke test
 
-`tools/smoke_test.py` drives the game headlessly through the whole loop (gate, voyage, crabs, puzzle leaps, chest) using the `window.__psq` test hook in the page.
+`tools/smoke_test.py` drives the game headlessly through the whole loop (gate, voyage, crabs, puzzle leaps, chest) using the `window.__psq` test hook in the page. It serves the repo over a local HTTP server so GLB assets load, and warns if a GLB in `art/exports/` fell back to its stand-in.
 
 ```bash
 pip install playwright
@@ -82,4 +82,11 @@ python3 tools/blender/chestnut_demo.py
 blender -b -P tools/blender/chestnut_demo.py
 ```
 
-The demo builds a chestnut, renders a preview PNG with Cycles and exports `art/exports/chestnut.glb`. Use it as the template for the real assets. The asset plan is in `DESIGN.md`.
+The demo builds a chestnut, renders a preview PNG with Cycles and exports `art/exports/chestnut.glb`. Game assets use the shared helpers in `tools/blender/psq_common.py`; each script writes `art/exports/<name>.glb` and a preview to `art/previews/<name>.png` (gitignored):
+
+```bash
+blender -b -P tools/blender/twig_boat.py
+# Windows: & "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b -P tools\blender\twig_boat.py
+```
+
+The asset plan and how to swap a GLB in for a stand-in are in `DESIGN.md`.
