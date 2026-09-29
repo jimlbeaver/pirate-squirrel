@@ -224,6 +224,8 @@ body:not(.touch) .touch-only{display:none}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>window.THREE||document.write('<script src="../vendor/three.r128.min.js"><\/script>')</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>window.THREE&&!THREE.GLTFLoader&&document.write('<script src="../vendor/GLTFLoader.r128.js"><\/script>')</script>
 <script>
 (function(){
 'use strict';
@@ -308,6 +310,24 @@ const UNIT_ICO=new THREE.IcosahedronGeometry(1,0);
 const UNIT_SPH=new THREE.SphereGeometry(1,20,14);
 function mesh(geo,m,x,y,z,parent){ const o=new THREE.Mesh(geo,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
 function ball(r,m,x,y,z,parent){ const o=mesh(UNIT_SPH,m,x,y,z,parent); o.scale.setScalar(r); return o; }
+
+/* ================= assets (GLB models; the primitive stand-ins stay as fallback) ================= */
+const ASSET_DIR='../art/exports/';
+const assetState={};
+// Swap art/exports/<name>.glb in for a stand-in group. Any failure (missing file, file://, no loader) keeps the stand-in.
+function swapIn(name,holder,standIn){
+  if(!THREE.GLTFLoader){ assetState[name]='stand-in'; return; }
+  assetState[name]='loading';
+  const fail=e=>{ assetState[name]='stand-in'; console.warn('asset '+name+': keeping stand-in ('+((e&&e.message)||e)+')'); };
+  new THREE.GLTFLoader().load(ASSET_DIR+name+'.glb',gltf=>{
+    try{
+      const m=gltf.scene;
+      // the page renders without colour management, so bring glTF's linear colours back to the hex values the stand-ins use
+      m.traverse(o=>{ if(!o.isMesh) return; o.castShadow=o.receiveShadow=true; [].concat(o.material).forEach(q=>{ q.color&&q.color.convertLinearToSRGB(); q.emissive&&q.emissive.convertLinearToSRGB(); }); });
+      holder.add(m); standIn.visible=false; assetState[name]='glb';
+    }catch(e){ fail(e); }
+  },undefined,fail);
+}
 
 /* ================= symbols (branch signs + map) ================= */
 const SYMS={
@@ -659,13 +679,15 @@ function leafShape(){
 }
 const boat={x:MOOR.x,z:MOOR.z,h:MOOR.h,speed:0,g:new THREE.Group(),bob:0,roll:0,pitch:0,spin:0};
 scene.add(boat.g);
-{ const hull=mesh(new THREE.SphereGeometry(1,18,10,0,TAU,Math.PI/2,Math.PI/2),MAT.twig,0,0.34,0,boat.g); hull.scale.set(0.74,0.5,1.45);
-  [[0.34,1],[0.2,0.93],[0.07,0.8]].forEach(([y,s],i)=>{ const r=mesh(new THREE.TorusGeometry(1,i?0.045:0.075,6,26),MAT.twig,0,y,0,boat.g); r.scale.set(0.74*s,1.45*s,1); r.rotation.x=Math.PI/2; });
-  const dg=new THREE.CircleGeometry(1,20); dg.rotateX(-Math.PI/2); const deck=mesh(dg,MAT.deck,0,0.2,0,boat.g); deck.scale.set(0.66,1,1.32);
-  mesh(new THREE.CylinderGeometry(0.035,0.045,1.9,6),MAT.barkDark,0,1.1,0.42,boat.g);
-  const sail=mesh(new THREE.ShapeGeometry(leafShape()),MAT.sail,0,0.42,0.42,boat.g); sail.rotation.y=Math.PI/2-0.75;
-  for(let i=0;i<7;i++){ const a=rnd()*TAU; const m=mesh(UNIT_ICO,MAT.moss,Math.cos(a)*0.72,0.36,Math.sin(a)*1.4,boat.g); m.scale.set(0.09,0.06,0.09); }
-  mesh(new THREE.CylinderGeometry(0.03,0.03,0.6,5),MAT.barkDark,0,0.5,1.45,boat.g).rotation.x=0.9; }
+{ const sb=new THREE.Group(); boat.g.add(sb);
+  const hull=mesh(new THREE.SphereGeometry(1,18,10,0,TAU,Math.PI/2,Math.PI/2),MAT.twig,0,0.34,0,sb); hull.scale.set(0.74,0.5,1.45);
+  [[0.34,1],[0.2,0.93],[0.07,0.8]].forEach(([y,s],i)=>{ const r=mesh(new THREE.TorusGeometry(1,i?0.045:0.075,6,26),MAT.twig,0,y,0,sb); r.scale.set(0.74*s,1.45*s,1); r.rotation.x=Math.PI/2; });
+  const dg=new THREE.CircleGeometry(1,20); dg.rotateX(-Math.PI/2); const deck=mesh(dg,MAT.deck,0,0.2,0,sb); deck.scale.set(0.66,1,1.32);
+  mesh(new THREE.CylinderGeometry(0.035,0.045,1.9,6),MAT.barkDark,0,1.1,0.42,sb);
+  const sail=mesh(new THREE.ShapeGeometry(leafShape()),MAT.sail,0,0.42,0.42,sb); sail.rotation.y=Math.PI/2-0.75;
+  for(let i=0;i<7;i++){ const a=rnd()*TAU; const m=mesh(UNIT_ICO,MAT.moss,Math.cos(a)*0.72,0.36,Math.sin(a)*1.4,sb); m.scale.set(0.09,0.06,0.09); }
+  mesh(new THREE.CylinderGeometry(0.03,0.03,0.6,5),MAT.barkDark,0,0.5,1.45,sb).rotation.x=0.9;
+  swapIn('twig_boat',boat.g,sb); }
 function boatDeckY(){ return boat.bob+0.2; }
 
 /* ================= squirrel ================= */
@@ -1543,7 +1565,7 @@ window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z
   giveAll:()=>{ ITEMS.forEach(g=>{ gear[g]=true; equip(g,false); }); refreshKit(); },
   tree:(id)=>{ const t=TREE[id]; return {x:t.x,z:t.z,base:t.base,climbMin:t.climbMin,climbMax:t.climbMax,branches:t.branches.map(b=>({to:b.to,top:+b.top.toFixed(2),angle:+b.angle.toFixed(3),rotten:b.rotten,chain:b.chain,sym:b.sym,cx:b.cx,cz:b.cz,hl:b.hl,ux:b.ux,uz:b.uz,start:b.start}))}; },
   face:(a)=>{ P.facing=a; cam.yaw=a+Math.PI; rig.root.rotation.y=a; },
-  seq:()=>seq.slice(), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead}))};
+  seq:()=>seq.slice(), assets:()=>Object.assign({},assetState), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead}))};
 requestAnimationFrame(frame);
 }
 })();
