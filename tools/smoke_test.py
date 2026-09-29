@@ -145,6 +145,7 @@ async def main():
         for tid in ("D", "E"):
             br = (await E(f"window.__psq.tree('{tid}')"))["branches"]
             assert len(br) >= 2 and all(b["rotten"] and b["sym"] for b in br), f"{tid}: want signed rotten branches"
+        assert not (await E("window.__psq.komodo()"))["awake"], "the dragon should doze until the squirrel is up in the grove"
         t = await E("window.__psq.tree('T')")
         await E(f"window.__psq.tp({t['x']},{t['base']+10.8},{t['z']},'air')"); await E("window.__psq.face(3.6)"); await step(40)
         await page.screenshot(path=str(OUT / "04b_grove.png"))
@@ -163,6 +164,21 @@ async def main():
         rb = [b for b in s["branches"] if b["rotten"]][0]
         await E(f"window.__psq.tp({rb['cx']},{rb['top']+0.3},{rb['cz']},'air')"); await step(40)
         show("stood on rotten branch", await info())
+
+        # 6b. the fall wakes the Komodo dragon's chase; a swipe stuns it, a branch ends it
+        k = await E("window.__psq.komodo()"); print(f"{'komodo after the fall':<28} {k}")
+        assert k["awake"] and k["chasing"], "a fall to the grove floor should start the chase"
+        i = await info()
+        await E("window.__psq.face(0)"); await E(f"window.__psq.komodo({i['x']+0.3},{i['z']+2.8},1.5708)"); await step(2)
+        await page.screenshot(path=str(OUT / "04c_komodo.png"))
+        await E(f"window.__psq.komodo({i['x']},{i['z']+1.4},3.1416)"); await step(2)
+        await press("KeyF"); await step(3)
+        k = await E("window.__psq.komodo()"); print(f"{'komodo swiped':<28} {k}")
+        assert k["stun"] > 0, "a tail-swipe should stun the dragon"
+        s = await E("window.__psq.tree('S')"); br = [b for b in s["branches"] if b["chain"] == 0][0]
+        await E(f"window.__psq.tp({br['cx']},{br['top']+0.3},{br['cz']},'air')"); await step(20)
+        k = await E("window.__psq.komodo()"); print(f"{'back on a branch':<28} {k}")
+        assert not k["chasing"], "the dragon should give up once the squirrel is off the ground"
 
         # 7. treasure tree: climb to the nest and open the chest
         t = await E("window.__psq.tree('T')"); lb = t["branches"][0]
