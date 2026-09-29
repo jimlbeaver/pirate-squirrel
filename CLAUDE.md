@@ -6,4 +6,4 @@
 - Coordinates: y is up, the squirrel faces +z at rotation 0, facing angle = `atan2(dx, dz)`.
 - Platforms (branches, dock, nest) are `{kind:'box'|'disc', …}` objects in `platforms`; terrain is analytic via `terrainY(x, z)`.
 - After changes, run `python3 tools/smoke_test.py` and check it reports no page errors.
-- Assets go in `art/` (Blender scripts in `tools/blender/`, exports in `art/exports/*.glb`).
+- Assets go in `art/` (Blender scripts in `tools/blender/`, exports in `art/exports/*.glb`). Load them with `swapIn` over a stand-in group; a missing or broken GLB must never break the game.
