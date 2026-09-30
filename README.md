@@ -1,6 +1,6 @@
 # Pirate Squirrel: Quest for the Chest Nuts
 
-Browser game prototype spun off from the OFWG Productions pirate squirrel short. Plain three.js, no build step. Each version is a single self-contained HTML file.
+Browser game prototype spun off from the Sloppy Beaver Productions pirate squirrel short. Plain three.js, no build step. Each version is a single self-contained HTML file.
 
 | Folder | What it is |
 |---|---|
