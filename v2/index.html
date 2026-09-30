@@ -348,20 +348,30 @@ function ball(r,m,x,y,z,parent){ const o=mesh(UNIT_SPH,m,x,y,z,parent); o.scale.
 
 /* ================= assets (GLB models; the primitive stand-ins stay as fallback) ================= */
 const ASSET_DIR='../art/exports/';
-const assetState={};
-// Swap art/exports/<name>.glb in for a stand-in group. Any failure (missing file, file://, no loader) keeps the stand-in.
-function swapIn(name,holder,standIn){
+const assetState={}, assetCache={};
+function loadAsset(name){
+  if(!assetCache[name]) assetCache[name]=new Promise((ok,no)=>new THREE.GLTFLoader().load(ASSET_DIR+name+'.glb',gltf=>{
+    // the page renders without colour management, so bring glTF's linear colours back to the hex values the stand-ins use;
+    // GLTFLoader shares one material between every mesh that uses it, so convert each material once
+    const seen=new Set();
+    gltf.scene.traverse(o=>{ if(!o.isMesh) return; o.castShadow=o.receiveShadow=true;
+      [].concat(o.material).forEach(q=>{ if(seen.has(q)) return; seen.add(q); q.color&&q.color.convertLinearToSRGB(); q.emissive&&q.emissive.convertLinearToSRGB(); }); });
+    ok(gltf);
+  },undefined,no));
+  return assetCache[name];
+}
+// Swap art/exports/<name>.glb in for a stand-in group. Each file loads once; the first caller gets the loaded scene and
+// later callers a clone (sharing geometry and materials). `wire(model, gltf)` hooks up named nodes; if it throws, or
+// anything else fails (missing file, file://, no loader), the stand-in stays.
+function swapIn(name,holder,standIn,wire){
   if(!THREE.GLTFLoader){ assetState[name]='stand-in'; return; }
-  assetState[name]='loading';
+  if(assetState[name]!=='glb') assetState[name]='loading';
   const fail=e=>{ assetState[name]='stand-in'; console.warn('asset '+name+': keeping stand-in ('+((e&&e.message)||e)+')'); };
-  new THREE.GLTFLoader().load(ASSET_DIR+name+'.glb',gltf=>{
-    try{
-      const m=gltf.scene;
-      // the page renders without colour management, so bring glTF's linear colours back to the hex values the stand-ins use
-      m.traverse(o=>{ if(!o.isMesh) return; o.castShadow=o.receiveShadow=true; [].concat(o.material).forEach(q=>{ q.color&&q.color.convertLinearToSRGB(); q.emissive&&q.emissive.convertLinearToSRGB(); }); });
-      holder.add(m); standIn.visible=false; assetState[name]='glb';
-    }catch(e){ fail(e); }
-  },undefined,fail);
+  loadAsset(name).then(gltf=>{
+    const m=gltf.userData.taken?gltf.scene.clone(true):gltf.scene; gltf.userData.taken=true;
+    try{ if(wire) wire(m,gltf); holder.add(m); standIn.visible=false; assetState[name]='glb'; }
+    catch(e){ holder.remove(m); fail(e); }
+  },fail);
 }
 
 /* ================= symbols (branch signs + map) ================= */
