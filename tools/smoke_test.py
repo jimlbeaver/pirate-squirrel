@@ -279,7 +279,7 @@ async def main():
             await step(10)
             if (await info())["platform"] == "nest": break
         await key("KeyW", False)
-        await press("KeyE"); await step(130)
+        await press("KeyE"); await step(160)
         assert await E("!document.getElementById('gag').hidden && document.getElementById('gag2').hidden"), "the 'all D's' line should show first"
         await step(120)
         assert await E("!document.getElementById('gag2').hidden"), "DEEZ NUTS should follow two seconds later"
@@ -295,4 +295,5 @@ async def main():
         await browser.close()
     httpd.shutdown()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
