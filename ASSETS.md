@@ -2,7 +2,17 @@
 
 Blender scripts in `tools/blender/` build every asset, render a preview to `art/previews/` (gitignored) and export `art/exports/<name>.glb`. The game loads a GLB with `swapIn(name, parent, standIn)` over a primitive stand-in and keeps the stand-in if anything fails. All stand-in references are to sections of `v2/index.html`.
 
-`blender -b -P tools/blender/lineup.py` renders every exported asset side by side at game scale, in a 3/4 view and from the follow camera. Run it after changing any asset.
+`blender -b -P tools/blender/lineup.py` renders every exported asset side by side at game scale, in a 3/4 view and from the follow camera. Run it after changing any asset. `blender -b -P tools/blender/samples.py` renders the two open-question sheets below; it exports nothing.
+
+## Decisions
+
+| Question | Decision |
+|---|---|
+| Crab eyes | **Settled:** small beady eyes, no stalks, lids or glints (crab and Captain Pinch) |
+| Captain Pinch | **Settled:** tricorne plus one oversized claw (`ClawR` 1.35×) |
+| Hero squirrel | **Settled:** scripted in Blender, low-poly, one skinned mesh on a simple armature, with baked glTF clips (see *Squirrel rig and clips*). Not wired into the game yet |
+| Character shading, faceted or smooth | **Pending** Jim's pick from `art/previews/sample_shading.png` (crab and squirrel each way, next to faceted world pieces) |
+| Leaves and wear | **Pending** Jim's pick from `art/previews/sample_foliage.png`: A flat colours with boat-level moss, B flat with more moss and weathering, C vertex-colour gradients (needs the loader change in the wiring notes) |
 
 ## Style guide
 
@@ -12,7 +22,7 @@ Blender scripts in `tools/blender/` build every asset, render a preview to `art/
 
 **Detail level.** Only detail you can see from 6–9 m behind the squirrel: big shapes, two or three colour blocks per part, and a few accents (rope ties, moss tufts, spots). No greebles, no fine texture carved into geometry, no thin parts under about 0.015 wide.
 
-**Shading.** Flat (faceted) shading. Principled BSDF with base colour and roughness only (metallic only for gold). No textures, with two exceptions where the game already draws canvas textures: sign text and plaque symbols. Those assets expose a named material slot (`SignFace`, `PlaqueFace`) that the game fills in. No emissive; glows stay in code.
+**Shading.** Flat (faceted) shading for the world. Characters are faceted for now, pending the shading decision. Principled BSDF with base colour and roughness only (metallic only for gold). No textures, with two exceptions where the game already draws canvas textures: sign text and plaque symbols. Those assets expose a named material slot (`SignFace`, `PlaqueFace`) that the game fills in. No emissive; glows stay in code.
 
 **Palette.** Author colours as the game's hex values (`materials` section, `MAT`). The core 12:
 
@@ -53,9 +63,9 @@ Status: **done** (approved by Jim), **style-check** (built, awaiting Jim), **tod
 
 | # | Asset | Stand-in (section) | Match: size, origin, facing | Tris | Style notes | Anim | Status |
 |---|---|---|---|---|---|---|---|
-| 9 | `crab` | `buildCrab(1)` in `Treasure Island` | origin on the ground, body centred at y 0.24 (half-extents 0.42 × 0.2 × 0.32), +z forward; `Body`, `ClawL` (0.3, 0.26, 0.2), `ClawR` (-0.3, 0.26, 0.2) | 2,216 | dome shell with dark spots and rim spikes, pale pincer tips, eyes on stalks with grumpy lids, smile | code (claws, hop, flip) | **style-check** |
-| 10 | `captain_pinch` | `buildCrab(1.45)` | as the crab, authored at 1× (the game scales `inner` by 1.45); plus a `Hat` node at (0, 0.46, -0.05); `ClawR` 1.35× | 3,252 | black tricorne with gold trim and skull, one oversized claw | code (+ hat can pop off) | **style-check** |
-| 11 | `squirrel` + gear | `squirrel` (`buildSquirrel`, `equip`) | 0.9 tall, origin at the feet, +z forward; nodes `Body`, `Head` (0, 0.62, 0.04), `Ears`, `ArmL/R`, `Tail` (0, 0.2, -0.17); gear `Patch` (left eye, +x), `Coat`, `Hat`, `Map` | 8–12k | red fur, cream belly and muzzle, huge dark eyes, giant tail; rust coat with belt and brass buckle; tricorne with red band and skull; scroll map | code now; clips later (idle, run, jump, glide, climb, swipe, search, celebrate) | todo (**Jim to choose the approach**) |
+| 9 | `crab` | `buildCrab(1)` in `Treasure Island` | origin on the ground, body centred at y 0.24 (half-extents 0.42 × 0.2 × 0.32), +z forward; `Body`, `ClawL` (0.3, 0.26, 0.2), `ClawR` (-0.3, 0.26, 0.2) | 2,048 | dome shell with dark spots and rim spikes, pale pincer tips, small beady eyes, smile | code (claws, hop, flip) | **style-check** (eyes settled; shading pending) |
+| 10 | `captain_pinch` | `buildCrab(1.45)` | as the crab, authored at 1× (the game scales `inner` by 1.45); plus a `Hat` node at (0, 0.46, -0.05); `ClawR` 1.35× | 3,084 | black tricorne with gold trim and skull, one oversized claw, beady eyes | code (+ hat can pop off) | **style-check** (design settled; shading pending) |
+| 11 | `squirrel` + gear | `squirrel` (`buildSquirrel`, `equip`) | 0.9 tall, origin between the feet, +z forward; skinned `SquirrelBody` on a 17-bone rig; gear `Ears`, `Patch` (left eye, +x), `Hat`, `Coat` + `CoatSleeveL/R`, `Map` | 4,964 (body 2,088) | red fur, cream belly and muzzle, huge dark eyes, giant puffy tail; rust coat with belt and brass buckle; tricorne with red band and skull; scroll map | clips: `Idle`, `Run`, `Jump` (glide, climb, swipe, search, celebrate later) | **style-check** (scripted, rigged, animated; not wired in) |
 | 12 | `komodo` (#11) | none yet (gameplay adds one) | suggest ~2.0 long, ~0.45 at the shoulder, origin on the ground under the chest, +z forward | 3–6k | low, long and lumpy; grey-olive with a pale belly; big dopey-mean eyes; forked tongue as its own node | code (body segments, tongue) or clips | todo |
 | 13 | `hawk` (#12) | none yet | suggest ~1.8 wingspan, origin at the body centre, +z forward | 2–4k | brown/cream with a yellow hooked beak; `WingL/R` and `Tail` nodes | code (flap, dive) | todo |
 
@@ -73,12 +83,62 @@ These stay in code: water, whirlpools, terrain, flag, clouds, particles and the 
 
 ### Next up, in order
 
-The crab and Captain Pinch style check, then the chest and final Chestnut (#2, #3), the sea nuts (#4), the tree kit (#5, designed for #13's extra plaques and #16's moss patches), the dock and gate (#6), and the Komodo dragon (#12) once its gameplay stand-in exists. The hero squirrel (#11) is scheduled when Jim picks an approach.
+Jim's shading and foliage picks, then the chest and final Chestnut (#2, #3), the sea nuts (#4), the tree kit (#5, designed for #13's extra plaques and #16's moss patches, and built to the foliage pick), the dock and gate (#6), more squirrel clips, and the Komodo dragon (#12) once its gameplay stand-in exists.
+
+## Squirrel rig and clips
+
+`blender -b -P tools/blender/squirrel.py` builds, rigs, animates and exports `squirrel.glb`, and renders contact sheets and MP4s to `art/previews/` (`-- --quick` renders one still only).
+
+**Nodes.** Armature `Squirrel` (origin between the feet, +z forward) with one skinned mesh `SquirrelBody`. Gear is rigid meshes parented to bones, so the game toggles `visible` by name, as `equip()` does today:
+
+| Node | Bone | Notes |
+|---|---|---|
+| `Ears` | `Head` | hide while the hat is on (they poke through it) |
+| `Patch` | `Head` | over the left eye (+x); the strap runs diagonally round the head |
+| `Hat` | `Head` | tricorne, red band, skull |
+| `Coat`, `CoatSleeveL`, `CoatSleeveR` | `Hips`, `ArmL`, `ArmR` | one piece of gear: toggle all three together |
+| `Map` | `Hips` | scroll on the right hip |
+
+**Bones (17).** `Hips` (root) → `Spine` → `Chest` → `Head`, `ArmL/R`; `Hips` → `ThighL/R` → `ShinL/R` → `FootL/R`; `Hips` → `Tail1`…`Tail5`. Rotation keys are quaternions. Weights are painted by script (rigid per part, blended across the torso and tail), with no automatic weights, so rebuilds are repeatable.
+
+**Clips.** 24 fps, every bone keyed (51 channels). All clips play in place: the game already moves, turns and arcs the squirrel.
+
+| Clip | Length | Use |
+|---|---|---|
+| `Idle` | 2.00 s (48 frames), loop | breathing, head look, tail sway |
+| `Run` | 0.50 s (12 frames), loop | one stride per loop; `timeScale = hs * 3.2 / (4 * Math.PI)` keeps the stride rate the game's `walkPhase` uses |
+| `Jump` | 0.67 s (16 frames), play once, `clampWhenFinished` | crouch (f3), launch (f6), apex tuck (f10), reach to land (f16). Start on jump; crossfade back to `Idle`/`Run` on landing |
+
+```js
+const mixer = new THREE.AnimationMixer(gltf.scene);             // tick with mixer.update(dt)
+const act = (n) => mixer.clipAction(THREE.AnimationClip.findByName(gltf.animations, n));
+act('Run').play();
+const jump = act('Jump'); jump.setLoop(THREE.LoopOnce); jump.clampWhenFinished = true;
+```
+
+Checked in three.js r128 (`GLTFLoader` plus `AnimationMixer`): all three clips load by name and move the bones, and all gear nodes are found by name. The body comes in as 7 `SkinnedMesh` primitives (one per material).
+
+**Adding a clip.** Add a pose function to `CLIPS` in `squirrel.py`. It returns game-axis euler rotations per bone plus an optional `Hips` lift; the script converts them to bone space. Keep clips in place and loopable where the game loops them.
 
 ## Wiring notes (for whoever swaps these in; not done on this branch)
 
+- **Shared materials (fix before the first multi-node GLB goes in).** `GLTFLoader` shares one material instance between every mesh that uses it. The loader's per-mesh `convertLinearToSRGB` therefore runs once per mesh, and shared colours wash out: the crab's shell (body and both claws) and the squirrel's fur and coat come out pale. The twig boat is one mesh, so it never showed. Convert each material once:
+
+```js
+const seen = new Set();
+m.traverse(o => { if (!o.isMesh) return; [].concat(o.material).forEach(q => { if (seen.has(q)) return; seen.add(q); /* existing conversion */ }); });
+```
+
 - **Crabs.** Build the stand-in parts into a `standIn` group inside `inner`, load each GLB once and `clone()` it per crab (`swapIn` currently loads per call, so add a small cache). Point `claws` at the `ClawR` and `ClawL` nodes (that order matches `s = -1, 1`). The hit flash sets `c.m.emissive`, so clone the GLB's materials per crab and flash all of them. Captain Pinch's `Hat` can tumble off in the defeat flip.
 - **Tree kit.** Every kit mesh must go into `occluders` with the same `userData.leaf` / `fr` / `plat` fields as the stand-ins, or the camera fade breaks.
-- **Colour.** The loader converts material colours only. Vertex colours (if we ever use gradients) would need the same `convertLinearToSRGB`.
+- **Colour.** The loader converts material colours only. If Jim picks foliage option C (vertex-colour gradients), the loader must convert vertex colours too. The exporter writes `COLOR_0` as unnormalized float RGB, so this is all that's needed (checked in r128 on the sample GLB):
+
+```js
+const col = o.geometry.attributes.color, c = new THREE.Color();
+if (col) { for (let i = 0; i < col.count; i++) { c.fromBufferAttribute(col, i).convertLinearToSRGB(); col.setXYZ(i, c.r, c.g, c.b); } col.needsUpdate = true; }
+```
+
+  `GLTFLoader` already sets `vertexColors` on those materials. Keep the material colour white in Blender, because the two multiply.
+- **Squirrel.** Keep the current stand-in as the fallback. On load, hide the stand-in's parts, map `equip()` onto the gear node names above, and drive the clips from the existing movement state (grounded plus speed gives `Idle` or `Run`; take-off plays `Jump`). The code-driven tail sway (`rig.tail.rotation`) goes away, because the clips do it. Glide and swipe tail poses need their own clips.
 - **Size.** GLBs are uncompressed. Draco or meshopt would need extra decoders for r128, so revisit only if `art/exports` passes ~5 MB.
 - The old `chestnut_demo.py` export is off-style (linear RGB rather than palette hex, smooth-shaded, raw `bpy`) and will be replaced by the #14 chestnut.
