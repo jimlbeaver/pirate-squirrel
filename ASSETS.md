@@ -2,7 +2,7 @@
 
 Blender scripts in `tools/blender/` build every asset, render a preview to `art/previews/` (gitignored) and export `art/exports/<name>.glb`. The game loads a GLB with `swapIn(name, parent, standIn, wire)` over a primitive stand-in and keeps the stand-in if anything fails. All stand-in references are to sections of `v2/index.html`.
 
-`blender -b -P tools/blender/lineup.py` renders every exported asset side by side at game scale, in a 3/4 view and from the follow camera. Run it after changing any asset. `blender -b -P tools/blender/samples.py` renders the two open-question sheets below; it exports nothing.
+`blender -b -P tools/blender/lineup.py` renders every exported asset side by side at game scale, in a 3/4 view and from the follow camera. Run it after changing any asset. `blender -b -P tools/blender/samples.py` renders the shading and foliage sample sheets behind the decisions below; it exports nothing.
 
 ## Decisions
 
@@ -13,7 +13,7 @@ Blender scripts in `tools/blender/` build every asset, render a preview to `art/
 | Hero squirrel | **Settled:** scripted in Blender, low-poly, one skinned mesh on a simple armature, with baked glTF clips (see *Squirrel rig and clips*). In the game since v2.3. Tail sits lower and further back (v2.3) so the hat and gear read from the follow camera |
 | Character shading, faceted or smooth | **Settled:** characters (squirrel, crabs, Captain Pinch) are smooth-shaded; the world stays faceted |
 | Nuts | **Settled:** each nut reads apart at a glance, even from the follow camera. Sea nuts are faceted world props: a pinched, pitted peanut, a scaly-capped acorn, a wrinkled walnut with a seam. The Chestnut prize is the one smooth, glossy nut, bigger and redder, with a pale base patch and a tip tuft |
-| Leaves and wear | **Pending** Jim's pick from `art/previews/sample_foliage.png`: A flat colours with boat-level moss, B flat with more moss and weathering, C vertex-colour gradients (needs the loader change in the wiring notes) |
+| Leaves and wear | **Settled:** option A from `art/previews/sample_foliage.png`, flat colours with boat-level moss (not B's heavier moss and weathering, nor C's vertex-colour gradients). The tree kit gets built to this in a later version |
 
 ## Style guide
 
@@ -84,7 +84,7 @@ These stay in code: water, whirlpools, terrain, flag, clouds, particles and the 
 
 ### Next up, in order
 
-Jim's foliage pick, then the tree kit (#5, designed for #13's extra plaques and #16's moss patches, and built to the foliage pick), the dock and gate (#6), the Komodo dragon (#12, over the game's current stand-in), a search clip for the squirrel, and Captain Pinch's hat tumbling off in the defeat flip.
+The tree kit (#5, designed for #13's extra plaques and #16's moss patches, in foliage option A), the dock and gate (#6), the Komodo dragon (#12, over the game's current stand-in), a search clip for the squirrel, and Captain Pinch's hat tumbling off in the defeat flip.
 
 ## Squirrel rig and clips
 
@@ -132,7 +132,7 @@ Still to do:
 
 - **Captain Pinch's hat.** The `Hat` node could tumble off in the defeat flip; the game doesn't do that yet.
 - **Tree kit.** Every kit mesh must go into `occluders` with the same `userData.leaf` / `fr` / `plat` fields as the stand-ins, or the camera fade breaks.
-- **Colour.** The loader converts material colours only. If Jim picks foliage option C (vertex-colour gradients), the loader must convert vertex colours too. The exporter writes `COLOR_0` as unnormalized float RGB, so this is all that's needed (checked in r128 on the sample GLB):
+- **Colour.** The loader converts material colours only, which is all foliage option A needs. If an asset ever uses vertex colours (as option C would have), the loader must convert those too. The exporter writes `COLOR_0` as unnormalized float RGB, so this is all that's needed (checked in r128 on the sample GLB):
 
 ```js
 const col = o.geometry.attributes.color, c = new THREE.Color();
