@@ -63,6 +63,13 @@ button{font-family:var(--body)}
 .stat small{font-weight:700;color:var(--parch-dim);font-size:11px;margin-left:3px}
 .chip{pointer-events:auto;font:800 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--parchment);border:0;border-radius:6px;padding:7px 9px;cursor:pointer;white-space:nowrap}
 .chip.alt{background:var(--brass)}
+.skillTag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--parch-dim)}
+.skill{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 18px;font:700 13px/1.3 var(--body);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.skill .label{font:800 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-right:4px}
+.seg{font:800 13px/1 var(--body);color:var(--parchment);background:rgba(38,23,13,.55);border:2px solid var(--brass-soft);border-radius:7px;padding:7px 12px;cursor:pointer}
+.seg.on{color:var(--ink);background:var(--brass);border-color:var(--brass)}
+.seg:focus-visible{outline:2px solid var(--parchment);outline-offset:2px}
+.skillNote{color:var(--parch-dim);margin-left:4px}
 .chip:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 
 #toast{position:absolute;left:50%;top:max(22vh,190px);transform:translate(-50%,-8px);opacity:0;transition:opacity .25s,transform .25s;max-width:min(480px,calc(100vw - 32px));box-sizing:border-box;padding:10px 16px 11px;font:700 15px/1.4 var(--body);text-align:center;color:var(--ink);background:var(--parchment);border-radius:8px;border:2px solid var(--brass);box-shadow:0 8px 24px rgba(0,0,0,.3);text-wrap:balance}
@@ -156,6 +163,7 @@ body:not(.touch) .touch-only{display:none}
   <div class="stats panel">
     <span class="stat" id="time">0:00</span>
     <span class="stat" id="splashes">0<small>splashes</small></span>
+    <span class="stat skillTag" id="skillTag" title="Skill level (change it in the help card)">Normal</span>
     <button class="chip" id="camBtn" type="button">Follow cam</button>
     <button class="chip alt" id="mapBtn" type="button" hidden>Map</button>
     <button class="chip" id="mute" type="button">Sound on</button>
@@ -188,6 +196,7 @@ body:not(.touch) .touch-only{display:none}
       <kbd>Right thumb</kbd><span>Drag to look. Follow cam button snaps it back.</span>
       <kbd>?</kbd><span>The ? button shows these controls.</span>
     </div>
+    <div class="skill" role="radiogroup" aria-label="Skill level"><span class="label">Skill</span><button class="seg" type="button" role="radio" data-skill="easy">Easy</button><button class="seg" type="button" role="radio" data-skill="normal">Normal</button><span class="skillNote" data-skill-note></span></div>
     <button class="btn" id="startBtn" type="button">Set sail</button>
     <p class="credit">Stand-in art · sound effects only, music coming later</p>
   </div>
@@ -225,6 +234,7 @@ body:not(.touch) .touch-only{display:none}
   <div class="card">
     <h2>How to play</h2>
     <div id="helpControls"></div>
+    <div class="skill" role="radiogroup" aria-label="Skill level"><span class="label">Skill</span><button class="seg" type="button" role="radio" data-skill="easy">Easy</button><button class="seg" type="button" role="radio" data-skill="normal">Normal</button><span class="skillNote" data-skill-note></span></div>
     <p style="margin:0"><button class="btn" id="helpClose" type="button">Back to it</button></p>
   </div>
 </div>
@@ -477,12 +487,22 @@ function addBranch(t,angle,top,len,opts){
   p.parts.forEach(o=>{ o.userData.home={p:o.position.clone(),r:o.rotation.clone()}; });
   return p;
 }
+let haloTexCache=null;
+function haloTex(){
+  if(haloTexCache) return haloTexCache;
+  const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(32,32,10,32,32,32); gr.addColorStop(0,'rgba(255,222,120,0.95)'); gr.addColorStop(0.55,'rgba(255,200,80,0.55)'); gr.addColorStop(1,'rgba(255,180,50,0)');
+  g.fillStyle=gr; g.fillRect(0,0,64,64); return haloTexCache=new THREE.CanvasTexture(c);
+}
 function addTag(p){ // carved sign on a stick near the branch base
   const g=new THREE.Group(); const al=p.start+0.25;
   g.position.set(p.tree.x+p.ux*al,p.top,p.tree.z+p.uz*al); scene.add(g);
   mesh(new THREE.CylinderGeometry(0.025,0.03,0.5,5),MAT.barkDark,0,0.25,0,g);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:symTex.star,transparent:true}));
   sp.position.y=0.66; sp.scale.set(0.56,0.56,1); g.add(sp);
+  if(p.chain>=0){ // Easy mode's hint: a soft glow behind the true sign, hidden on Normal
+    const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:haloTex(),transparent:true,depthWrite:false,opacity:0.85}));
+    halo.position.y=0.66; halo.scale.set(1.05,1.05,1); halo.renderOrder=-1; halo.visible=false; g.add(halo); p.halo=halo; }
   p.tag=g; p.sprite=sp; p.parts.push(g); g.userData.home={p:g.position.clone(),r:g.rotation.clone()};
 }
 // Home Isle branch network
@@ -1362,8 +1382,8 @@ function updateCrabs(dt){
       const dx=P.x-c.x, dz=P.z-c.z, d=Math.hypot(dx,dz);
       const chase=playerHere&&d<7&&Math.hypot(P.x-c.hx,P.z-c.hz)<11;
       let tx,tz,sp;
-      if(chase){ tx=P.x; tz=P.z; sp=2.3*(c.captain?0.85:1); }
-      else { c.wob+=dt*0.7; tx=c.hx+Math.cos(c.wob+i)*1.3; tz=c.hz+Math.sin(c.wob*1.3+i)*0.8; sp=1.0; }
+      if(chase){ tx=P.x; tz=P.z; sp=2.3*(c.captain?0.85:1)*SK().crab; }
+      else { c.wob+=dt*0.7; tx=c.hx+Math.cos(c.wob+i)*1.3; tz=c.hz+Math.sin(c.wob*1.3+i)*0.8; sp=1.0*SK().crab; }
       const ex=tx-c.x, ez=tz-c.z, el=Math.hypot(ex,ez);
       if(el>0.4){ c.x+=ex/el*sp*dt; c.z+=ez/el*sp*dt; }
       faceX=chase?dx:ex; faceZ=chase?dz:ez;
@@ -1387,7 +1407,15 @@ function updateCrabs(dt){
 }
 
 /* ================= Komodo dragon (grove floor) ================= */
-const KOMODO={prowl:2.5,chase:4.0,lunge:7.0,lungeT:0.4,hissT:0.35,recoverT:0.6,lungeCool:2.0,lungeRange:3.2,grace:0.6,stun:1.5,stunCool:1.0,bite:20,biteCool:1.3,offset:1.5,turnProwl:1.8,turnChase:2.4};
+// Skill levels scale the enemy tuning below (and crab speeds); Easy also lights up the true grove signs.
+const SKILL={
+  normal:{crab:1,komodo:1,komodoBite:20,hawkIdle:5.0,hawkWarn:1.5,hawkSpeed:13,hints:false},
+  easy:{crab:0.6,komodo:0.6,komodoBite:10,hawkIdle:10.0,hawkWarn:2.2,hawkSpeed:7.5,hints:true}
+};
+let skill='normal';
+try{ if(localStorage.getItem('psq.skill')==='easy') skill='easy'; }catch(e){}
+const SK=()=>SKILL[skill];
+const KOMODO={prowl:2.5,chase:4.0,lunge:7.0,lungeT:0.4,hissT:0.35,recoverT:0.6,lungeCool:2.0,lungeRange:3.2,grace:0.6,stun:1.5,stunCool:1.0,biteCool:1.3,offset:1.5,turnProwl:1.8,turnChase:2.4};
 const komodoHome=(()=>{ const t=TREE.T, dx=C.x-t.x, dz=C.z-t.z, d=Math.hypot(dx,dz); return {x:t.x+dx/d*1.7,z:t.z+dz/d*1.7,h:Math.atan2(dx,dz)}; })();
 function buildKomodo(){
   const g=new THREE.Group(); scene.add(g);
@@ -1451,7 +1479,7 @@ function updateKomodo(dt){
   const da=angDiff(k.h,Math.atan2(tx-k.x,tz-k.z));
   if(Math.hypot(tx-k.x,tz-k.z)>0.2) k.h+=clamp(da,-turn*dt,turn*dt);
   if(k.lunge<=0) sp*=clamp(1-Math.abs(da)/2,0.3,1);
-  k.x+=Math.sin(k.h)*sp*dt; k.z+=Math.cos(k.h)*sp*dt; k.sp=sp;
+  sp*=SK().komodo; k.x+=Math.sin(k.h)*sp*dt; k.z+=Math.cos(k.h)*sp*dt; k.sp=sp;
   // stays on the grove floor, clear of the trunks
   const cx=k.x-C.x, cz=k.z-C.z, cd=Math.hypot(cx,cz), RMAX=RH-1.2; if(cd>RMAX){ k.x=C.x+cx/cd*RMAX; k.z=C.z+cz/cd*RMAX; }
   for(const t of TREES){ if(!t.grove) continue; const ox=k.x-t.x, oz=k.z-t.z, od=Math.hypot(ox,oz), R=t.r+0.55; if(od<R&&od>1e-4){ k.x=t.x+ox/od*R; k.z=t.z+oz/od*R; } }
@@ -1461,7 +1489,7 @@ function updateKomodo(dt){
     if(Math.hypot(P.x-hx,P.z-hz)<0.7&&P.y-k.y<0.8){
       k.biteCool=KOMODO.biteCool; k.lunge=0; k.hiss=0; k.recover=KOMODO.recoverT; k.lungeCool=Math.max(k.lungeCool,1.2);
       const n=Math.hypot(dx,dz)||1; Object.assign(P,{mode:'air',vx:dx/n*6,vz:dz/n*6,vy:6.5,pinchCool:1.3,coyote:0,platform:null});
-      SFX.chomp(); hurt(KOMODO.bite,once('komodoBite',8)?'CHOMP! Get up a tree!':null); if(energy<=0) knockOut();
+      SFX.chomp(); hurt(SK().komodoBite,once('komodoBite',8)?'CHOMP! Get up a tree!':null); if(energy<=0) knockOut();
     }
   }
   placeKomodo(dt);
@@ -1480,7 +1508,7 @@ function placeKomodo(dt){
 
 /* ================= hawk (Treasure Island branches) ================= */
 // Idle too long on a grove branch and a hawk makes one telegraphed pass: the only way to be knocked off a branch.
-const HAWK={idle:5.0,warn:1.5,circleR:2.5,circleOff:3.5,circleH:2.5,sink:0.8,speed:13,hitR:0.8,knock:5.5,lift:3.5,energy:5,swipeR:2.2,diveT:1.3,leaveT:1.6};
+const HAWK={circleR:2.5,circleOff:3.5,circleH:2.5,sink:0.8,hitR:0.8,knock:5.5,lift:3.5,energy:5,swipeR:2.2,diveT:1.3,leaveT:1.6};
 function buildHawk(){
   const g=new THREE.Group(); scene.add(g); g.visible=false;
   const brown=mat(0x6b4526), light=mat(0xd9c29a), beak=mat(0xe8b23d);
@@ -1521,16 +1549,16 @@ function updateHawk(dt){
     if(h.phase==='none'){
       if(perchedInGrove()&&Math.hypot(P.x-h.ax,P.z-h.az)<0.3&&Math.abs(angDiff(P.facing,h.af))<0.3) h.idle+=dt;
       else { h.idle=0; h.ax=P.x; h.az=P.z; h.af=P.facing; }
-      if(h.idle>=HAWK.idle){ h.phase='circle'; h.t=0; h.ang=Math.random()*TAU; h.g.visible=true;
+      if(h.idle>=SK().hawkIdle){ h.phase='circle'; h.t=0; h.ang=Math.random()*TAU; h.g.visible=true;
         // circle on the far side of the squirrel from the camera, so the player sees it wind up
         const vx=P.x-camera.position.x, vz=P.z-camera.position.z, vn=Math.hypot(vx,vz)||1; h.ox=vx/vn*HAWK.circleOff; h.oz=vz/vn*HAWK.circleOff; SFX.screech(); if(once('hawk',999)) toast('SKREEE! A hawk has spotted you. Keep moving!',3,true,true); }
     } else if(h.phase==='circle'){
       h.t+=dt; h.ang+=dt*1.9;
       h.x=P.x+h.ox+Math.cos(h.ang)*HAWK.circleR; h.z=P.z+h.oz+Math.sin(h.ang)*HAWK.circleR; h.y=P.y+HAWK.circleH-h.t*HAWK.sink;
       h.dx=-Math.sin(h.ang); h.dy=0; h.dz=Math.cos(h.ang);
-      if(h.t>=HAWK.warn){ const ex=P.x-h.x, ey=P.y+0.35-h.y, ez=P.z-h.z, L=Math.hypot(ex,ey,ez); h.dx=ex/L; h.dy=ey/L; h.dz=ez/L; h.phase='dive'; h.t=0; SFX.whoosh(); }
+      if(h.t>=SK().hawkWarn){ const ex=P.x-h.x, ey=P.y+0.35-h.y, ez=P.z-h.z, L=Math.hypot(ex,ey,ez); h.dx=ex/L; h.dy=ey/L; h.dz=ez/L; h.phase='dive'; h.t=0; SFX.whoosh(); }
     } else {
-      h.t+=dt; const sp=h.phase==='dive'?HAWK.speed:HAWK.speed*0.6;
+      h.t+=dt; const sp=SK().hawkSpeed*(h.phase==='dive'?1:0.6);
       h.x+=h.dx*sp*dt; h.y+=h.dy*sp*dt; h.z+=h.dz*sp*dt;
       if(h.phase==='dive'){
         if(P.mode!=='climb'&&Math.hypot(P.x-h.x,P.y+0.35-h.y,P.z-h.z)<HAWK.hitR) hawkHit();
@@ -1545,6 +1573,26 @@ function updateHawk(dt){
   const pl=highestBelow(h.x,h.z,h.y), tg=Math.max(terrainY(h.x,h.z),0.12), gy=pl?Math.max(pl.top,tg):tg;
   hawkShadow.position.set(h.x,gy+0.04,h.z); hawkShadow.material.opacity=clamp(0.4-(h.y-gy)*0.03,0.1,0.4);
 }
+
+/* ================= skill level ================= */
+const SIGN_HINT=new THREE.Color(1.12,1.04,0.86), SIGN_PLAIN=new THREE.Color(1,1,1);
+function tintSigns(){
+  const on=SK().hints;
+  platforms.forEach(p=>{ if(!p.halo) return; p.halo.visible=on; p.sprite.material.color.copy(on?SIGN_HINT:SIGN_PLAIN); });
+}
+function setSkill(s){
+  skill=s==='easy'?'easy':'normal';
+  try{ localStorage.setItem('psq.skill',skill); }catch(e){}
+  refreshSkill();
+}
+function refreshSkill(){
+  document.querySelectorAll('.seg[data-skill]').forEach(b=>{ const on=b.dataset.skill===skill; b.classList.toggle('on',on); b.setAttribute('aria-checked',String(on)); });
+  document.querySelectorAll('[data-skill-note]').forEach(n=>{ n.textContent=skill==='easy'?'Slower enemies and a glow on the right signs.':'The full challenge.'; });
+  $('skillTag').textContent=skill==='easy'?'Easy':'Normal';
+  tintSigns();
+}
+document.querySelectorAll('.seg[data-skill]').forEach(b=>b.addEventListener('click',()=>{ setSkill(b.dataset.skill); b.blur(); }));
+refreshSkill();
 
 /* ================= interactions ================= */
 function nearbyAction(){
@@ -1800,6 +1848,9 @@ window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z
   face:(a)=>{ P.facing=a; cam.yaw=a+Math.PI; rig.root.rotation.y=a; },
   help:()=>{ toggleHelp(); return state; }, reset:()=>startGame(), map:()=>{ if(state==='map') closeMap(); else openMap(); return state; }, seq:()=>seq.slice(), assets:()=>Object.assign({},assetState), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead})),
   komodo:(x,z,h)=>{ const k=komodo; if(x!=null){ k.x=x; k.z=z; k.h=h||0; k.y=terrainY(x,z); } return {x:+k.x.toFixed(2),z:+k.z.toFixed(2),h:+k.h.toFixed(2),awake:k.awake,chasing:k.chasing,stun:+k.stun.toFixed(2),lunge:k.lunge>0,hiss:k.hiss>0}; },
+  skill:()=>({level:skill,crabChase:+(2.3*SK().crab).toFixed(2),komodo:{prowl:+(KOMODO.prowl*SK().komodo).toFixed(2),chase:+(KOMODO.chase*SK().komodo).toFixed(2),lunge:+(KOMODO.lunge*SK().komodo).toFixed(2),bite:SK().komodoBite},hawk:{idle:SK().hawkIdle,warn:SK().hawkWarn,speed:SK().hawkSpeed},
+    tinted:SIGNED_TREES.flatMap(id=>TREE[id].branches.filter(b=>b.sprite).map(b=>({tree:id,chain:b.chain,rotten:b.rotten,sym:b.sym,glow:!!(b.halo&&b.halo.visible)})))}),
+  setSkill:(s)=>{ setSkill(s); return skill; },
   hawk:()=>({phase:hawk.phase,idle:+hawk.idle.toFixed(2),x:+hawk.x.toFixed(2),y:+hawk.y.toFixed(2),z:+hawk.z.toFixed(2)})};
 requestAnimationFrame(frame);
 }

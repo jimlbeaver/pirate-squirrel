@@ -17,6 +17,22 @@ Everything lives in `v2/index.html`: CSS and HUD markup at the top, then one scr
 7. **Hawk.** Stand still on a grove branch for 5 s (not moving, not turning) and a hawk screeches and circles in front of you, sinking as it winds up. 1.5 s later it makes one straight dive at where you are. A hit knocks you sideways off the branch with no glide (−5 energy, feathers), usually to the Komodo. Moving, leaping or climbing makes it miss, and a tail-swipe as it arrives bonks it away. Either way it leaves and the idle timer starts over. Never on the nest or Home Isle.
 8. **Treasure.** Climb the treasure tree to the nest, open the chest, and the Chestnut rises out. A card reads "Congratulations on your efforts... you get all D's." Two seconds later "DEEZ NUTS!!!!" slams in, shaking (a gentle throb under reduced motion), then the win screen shows time, splashes, nuts eaten and crabs beaten.
 
+## Skill levels
+
+Easy or Normal, picked on the title card or the help card (H / ?). Normal is the default, and the choice is remembered in `localStorage` (`psq.skill`). The HUD shows the current level next to the timer. Everything comes from the `SKILL` table at the top of the `Komodo dragon` section:
+
+| | Normal | Easy |
+|---|---|---|
+| Crab speed (chase 2.3, wander 1.0) | ×1 | ×0.6 |
+| Komodo speed (prowl, chase, lunge) | ×1 (2.5, 4.0, 7.0) | ×0.6 (1.5, 2.4, 4.2) |
+| Komodo bite | −20 | −10 |
+| Hawk idle time before it comes | 5 s | 10 s |
+| Hawk warning before the dive | 1.5 s | 2.2 s |
+| Hawk dive speed | 13 | 7.5 |
+| Sign hint | none | the true launch sign on each grove tree gets a soft gold glow and a slight warm tint |
+
+The hint only marks the four true launches (`chain >= 0`). Decoys, D and E, and the arrival branches that carry the same sign stay plain, so you still check the map. Switching level mid-run takes effect at once.
+
 ## Movement rules
 
 - Tank controls everywhere: W/S (or ↑/↓) along the squirrel's facing, A/D (or ←/→) turn. Shift + arrows looks around instead. Follow cam sits behind him, and dragging switches to free cam. H or ? opens a help card with the controls and pauses.
@@ -48,9 +64,9 @@ Everything lives in `v2/index.html`: CSS and HUD markup at the top, then one scr
 | Komodo speeds | prowl 2.5, chase 4.0, lunge 7.0 for 0.4 s | `KOMODO` |
 | Komodo lunge | within 3.2, 0.35 s hiss first, 0.6 s recovery, 2 s cooldown | `KOMODO` |
 | Komodo grace, stun | 0.6 s after you land; stun 1.5 s, then 1 s before it can be stunned again | `KOMODO` |
-| Komodo bite | −20, knockback 6, 1.3 s between bites | `KOMODO` |
-| Hawk trigger | 5 s still on a grove branch; 1.5 s warning | `HAWK` |
-| Hawk dive | speed 13, hit radius 0.8, knock 5.5 sideways + 3.5 up, −5 | `HAWK` |
+| Komodo bite | −20 (Easy −10), knockback 6, 1.3 s between bites | `SKILL`, `KOMODO` |
+| Hawk trigger | 5 s still on a grove branch; 1.5 s warning (Easy 10 s, 2.2 s) | `SKILL` |
+| Hawk dive | speed 13 (Easy 7.5), hit radius 0.8, knock 5.5 sideways + 3.5 up, −5 | `SKILL`, `HAWK` |
 | Hawk swipe window | within 2.2 of the squirrel during the dive | `HAWK` |
 | Win pop-up | line at 1.6 s, DEEZ NUTS at 3.6 s, tally at 6.2 s | `GAG_AT` |
 
@@ -64,7 +80,7 @@ Balance hasn't been play-tested by hand yet. The voyage energy budget is the fir
 
 ## Code map (section → what's in it)
 
-`utils` · `renderer / scene` · `water` (animated plane that follows the camera) · `materials` · `assets` (`swapIn` loads `art/exports/<name>.glb` over a stand-in group and keeps the stand-in on any failure) · `symbols` (sign paths shared by the canvas plaques and the SVG map) · `islands / terrain` · `trees` (trees, branches as box platforms, moss bands) · `treasure tree nest, flag, chest` · `Home Isle hollows` · `pier + Pirates Only gate` · `voyage` · `Treasure Island` (hedge, barricade, crabs) · `boat` · `squirrel` (primitive rig; gear pieces toggle on) · `scenery` · `particles` · `audio` (WebAudio synthesized SFX) · `UI` · `game state` · `camera + input` · `the treasure map (SVG)` · `physics helpers` · `player step` · `crabs` · `Komodo dragon (grove floor)` · `hawk (Treasure Island branches)` · `interactions` · `objectives` · `animation` · `camera` (follow/free, occlusion fade) · `main loop` · `boot + hot-reload state`.
+`utils` · `renderer / scene` · `water` (animated plane that follows the camera) · `materials` · `assets` (`swapIn` loads `art/exports/<name>.glb` over a stand-in group and keeps the stand-in on any failure) · `symbols` (sign paths shared by the canvas plaques and the SVG map) · `islands / terrain` · `trees` (trees, branches as box platforms, moss bands) · `treasure tree nest, flag, chest` · `Home Isle hollows` · `pier + Pirates Only gate` · `voyage` · `Treasure Island` (hedge, barricade, crabs) · `boat` · `squirrel` (primitive rig; gear pieces toggle on) · `scenery` · `particles` · `audio` (WebAudio synthesized SFX) · `UI` · `game state` · `camera + input` · `the treasure map (SVG)` · `physics helpers` · `player step` · `crabs` · `Komodo dragon (grove floor)` · `hawk (Treasure Island branches)` · `skill level` (Easy/Normal picker, sign glow) · `interactions` · `objectives` · `animation` · `camera` (follow/free, occlusion fade) · `main loop` · `boot + hot-reload state`.
 
 `window.__psq` at the bottom is a small test hook (teleport, step the simulation, press keys, read state) used by `tools/smoke_test.py`. It's harmless to ship, and easy to delete.
 

@@ -61,6 +61,13 @@ async def main():
         fell_back = [n for n, s in assets.items() if s != "glb" and (ROOT / "art" / "exports" / f"{n}.glb").exists()]
         print("assets:", assets or "none", "| fell back to stand-in:", fell_back or "none")
         await page.screenshot(path=str(OUT / "01_title.png"))
+        if await page.evaluate("!!document.querySelector('#title .seg')"):
+            assert await page.evaluate("window.__psq.skill().level") == "normal", "skill should default to Normal"
+            await page.click("#title .seg[data-skill=easy]")
+            assert await page.evaluate("window.__psq.skill().level + ' ' + localStorage.getItem('psq.skill')") == "easy easy", "Easy should apply and be remembered"
+            await page.screenshot(path=str(OUT / "01b_skill_title.png"))
+            await page.click("#title .seg[data-skill=normal]")
+            assert await page.evaluate("window.__psq.skill().level") == "normal"
         await page.evaluate("document.getElementById('startBtn').click()")
         await page.wait_for_timeout(1000)
         await page.screenshot(path=str(OUT / "02_start.png"))
@@ -146,6 +153,23 @@ async def main():
             br = (await E(f"window.__psq.tree('{tid}')"))["branches"]
             assert len(br) >= 2 and all(b["rotten"] and b["sym"] for b in br), f"{tid}: want signed rotten branches"
         assert not (await E("window.__psq.komodo()"))["awake"], "the dragon should doze until the squirrel is up in the grove"
+
+        # 5a. Easy mode: slower enemies, and a glow on the true grove signs only
+        normal = await E("window.__psq.skill()")
+        assert not any(s["glow"] for s in normal["tinted"]), "Normal should tint nothing"
+        assert await E("window.__psq.setSkill('easy')") == "easy"
+        easy = await E("window.__psq.skill()")
+        print(f"{'easy tuning':<28}", {k: easy[k] for k in ("crabChase", "komodo", "hawk")})
+        assert easy["crabChase"] < normal["crabChase"] and easy["komodo"]["chase"] < normal["komodo"]["chase"] and easy["komodo"]["bite"] < normal["komodo"]["bite"], "Easy should slow crabs and the Komodo"
+        assert easy["hawk"]["idle"] > normal["hawk"]["idle"] and easy["hawk"]["speed"] < normal["hawk"]["speed"], "Easy should make the hawk later and slower"
+        glow = [s for s in easy["tinted"] if s["glow"]]
+        assert len(glow) == 4 and all(s["chain"] >= 0 and not s["rotten"] and s["sym"] == seq[s["chain"]] for s in glow), "Easy should tint exactly the four true signs"
+        a = await E("window.__psq.tree('A')"); br = [b for b in a["branches"] if b["to"] == "S" and not b["rotten"]][0]
+        al = br["hl"] - 0.3
+        await E(f"window.__psq.tp({br['cx']+br['ux']*al},{br['top']+0.3},{br['cz']+br['uz']*al},'air')")
+        await E(f"window.__psq.face(Math.atan2({br['ux']},{br['uz']}))"); await step(30)
+        await page.screenshot(path=str(OUT / "04a_easy_signs.png"))
+        await E("window.__psq.setSkill('normal')")
         t = await E("window.__psq.tree('T')")
         await E(f"window.__psq.tp({t['x']},{t['base']+10.8},{t['z']},'air')"); await E("window.__psq.face(3.6)"); await step(40)
         await page.screenshot(path=str(OUT / "04b_grove.png"))
