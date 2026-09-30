@@ -74,6 +74,7 @@ button{font-family:var(--body)}
 
 #toast{position:absolute;left:50%;top:max(22vh,190px);transform:translate(-50%,-8px);opacity:0;transition:opacity .25s,transform .25s;max-width:min(480px,calc(100vw - 32px));box-sizing:border-box;padding:10px 16px 11px;font:700 15px/1.4 var(--body);text-align:center;color:var(--ink);background:var(--parchment);border-radius:8px;border:2px solid var(--brass);box-shadow:0 8px 24px rgba(0,0,0,.3);text-wrap:balance}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+.floater{position:absolute;transform:translate(-50%,-50%);font:26px/1 var(--display);text-shadow:0 2px 0 rgba(40,20,8,.75),0 0 8px rgba(40,20,8,.45);white-space:nowrap}
 #toast.bad{border-color:var(--danger)}
 
 #prompt{position:absolute;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translate(-50%,6px);opacity:0;transition:opacity .15s,transform .15s;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;font:800 15px/1 var(--body);white-space:nowrap}
@@ -234,6 +235,7 @@ body:not(.touch) .touch-only{display:none}
   <div class="card">
     <h2>How to play</h2>
     <div id="helpControls"></div>
+    <p class="lede" style="margin:10px 0 0">Sea nuts: peanut +6, acorn +12, walnut +20. The best ones float nearest danger.</p>
     <div class="skill" role="radiogroup" aria-label="Skill level"><span class="label">Skill</span><button class="seg" type="button" role="radio" data-skill="easy">Easy</button><button class="seg" type="button" role="radio" data-skill="normal">Normal</button><span class="skillNote" data-skill-note></span></div>
     <p style="margin:0"><button class="btn" id="helpClose" type="button">Back to it</button></p>
   </div>
@@ -338,7 +340,7 @@ const MAT={
   gold:smoothMat(0xe8b23d,{metalness:0.7,roughness:0.35}), red:smoothMat(0xb3261e), white:smoothMat(0xf3f0e6), nose:smoothMat(0xd98c86),
   hole:new THREE.MeshBasicMaterial({color:0x120a05}), glint:smoothMat(0xffc84f,{emissive:0xffb42e,emissiveIntensity:0.9,metalness:0.3,roughness:0.3}),
   chestWood:mat(0x7a4a26), crab:smoothMat(0xd2502c,{roughness:0.6}), sail:mat(0xe2a73c,{side:THREE.DoubleSide,roughness:0.7}), moss:mat(0x7c9a3b),
-  tailTip:smoothMat(0xf1b27a,{roughness:1}), nut:smoothMat(0x7a4220,{roughness:0.3,emissive:0x3a1a08,emissiveIntensity:0.35}), nutCap:smoothMat(0xcfa46a), shark:mat(0x46545d), log:mat(0x6f5134), paper:mat(0xe9d6a6), hedge:mat(0xffffff), mossBright:mat(0x86b233,{roughness:0.8}), mossDark:mat(0x5b8424,{roughness:0.8})
+  tailTip:smoothMat(0xf1b27a,{roughness:1}), nut:smoothMat(0x7a4220,{roughness:0.3,emissive:0x3a1a08,emissiveIntensity:0.35}), nutCap:smoothMat(0xcfa46a), peanut:mat(0xd9b77e), walnut:mat(0xb8875a), shark:mat(0x46545d), log:mat(0x6f5134), paper:mat(0xe9d6a6), hedge:mat(0xffffff), mossBright:mat(0x86b233,{roughness:0.8}), mossDark:mat(0x5b8424,{roughness:0.8})
 };
 const leafMats=[0xd9872a,0xe8b441,0xc0602a,0x9aa23f,0xe39a37].map(c=>mat(c));
 const UNIT_ICO=new THREE.IcosahedronGeometry(1,0);
@@ -681,14 +683,39 @@ const SHARKS=[{cx:laneX(60),cz:60,r:7,sp:0.5,a:0},{cx:laneX(105),cz:105,r:8,sp:-
 SHARKS.forEach(s=>{ s.m=mesh(new THREE.ConeGeometry(0.46,0.95,3),MAT.shark,0,0,0); s.m.scale.set(0.25,1,1); s.cool=0; });
 const LOGS=[{z:45,ph:0},{z:112,ph:2},{z:166,ph:4}];
 LOGS.forEach(l=>{ l.m=mesh(new THREE.CylinderGeometry(0.34,0.38,4.4,8),MAT.log,0,0.15,l.z); l.m.rotation.z=Math.PI/2; l.cool=0; l.x=laneX(l.z); });
+// Sea nuts: the closer a nut floats to a hazard, the more it's worth. Its type comes from the distance to the
+// nearest hazard edge, so moving a hazard re-grades the nuts around it.
+function peanutModel(parent){ const g=new THREE.Group(); parent.add(g);
+  [-1,1].forEach(s=>ball(1,MAT.peanut,s*0.14,0,0,g).scale.set(0.17,0.15,0.15)); ball(1,MAT.peanut,0,0,0,g).scale.set(0.12,0.11,0.11); return g; }
+function walnutModel(parent){ const g=new THREE.Group(); parent.add(g);
+  mesh(new THREE.IcosahedronGeometry(0.46,1),MAT.walnut,0,0,0,g).scale.set(1,1.05,0.95);
+  mesh(new THREE.TorusGeometry(0.45,0.05,5,20),MAT.walnut,0,0,0,g).rotation.y=Math.PI/2; return g; }
+const NUT_TYPES={
+  peanut:{energy:6,size:0.75,sparks:6,color:'#f6e2b0',build:peanutModel},
+  acorn:{energy:12,size:1,sparks:10,color:'#ffd27a',build:g=>nutModel(g,2.4)},
+  walnut:{energy:20,size:1.3,sparks:18,color:'#ffae42',build:walnutModel}
+};
+const NUT_WALNUT_D=0.75, NUT_ACORN_D=1.6; // the lane is thick with hazards, so the bands are narrow (see DESIGN.md)
+function hazardDist(x,z){
+  let d=Infinity;
+  for(const k of ROCKS) d=Math.min(d,Math.hypot(x-k.x,z-k.z)-(k.r+1.0));
+  for(const s of SHARKS) d=Math.min(d,Math.abs(Math.hypot(x-s.cx,z-s.cz)-s.r)-1.5);
+  for(const l of LOGS) d=Math.min(d,Math.hypot(Math.max(0,Math.abs(x-laneX(l.z))-10.2),z-l.z)-1.35);
+  for(const w of WHIRLS) d=Math.min(d,Math.hypot(x-w.x,z-w.z)-w.R);
+  return Math.max(0,d);
+}
+function nutHolder(type){ const g=new THREE.Group(); scene.add(g); swapIn(type,g,NUT_TYPES[type].build(g)); return g; }
 const SEA_NUTS=[];
 for(let z=28,i=0;z<178;z+=7.2,i++){
   let x=laneX(z)+((i%3)-1)*3.2+(rnd()-0.5)*2;
   for(const k of ROCKS){ if(Math.hypot(x-k.x,z-k.z)<k.r+1.8){ x+=(x<k.x?-1:1)*(k.r+2.2); } }
-  const g=nutModel(scene,2.4); g.position.set(x,0.4,z); SEA_NUTS.push({x,z,g,taken:false,ph:rnd()*6});
+  SEA_NUTS.push({x,z,taken:false,ph:rnd()*6});
 }
 // a juicy cluster by each whirlpool edge
-WHIRLS.forEach(w=>{ for(let k=0;k<3;k++){ const a=k*0.9-0.9; const x=w.x+Math.cos(a)*(w.R+0.6), z=w.z+Math.sin(a)*(w.R+0.6); const g=nutModel(scene,2.4); g.position.set(x,0.4,z); SEA_NUTS.push({x,z,g,taken:false,ph:rnd()*6}); } });
+WHIRLS.forEach(w=>{ for(let k=0;k<3;k++){ const a=k*0.9-0.9; SEA_NUTS.push({x:w.x+Math.cos(a)*(w.R+0.6),z:w.z+Math.sin(a)*(w.R+0.6),taken:false,ph:rnd()*6}); } });
+SEA_NUTS.forEach(n=>{ n.d=hazardDist(n.x,n.z); n.type=n.d<NUT_WALNUT_D?'walnut':n.d<NUT_ACORN_D?'acorn':'peanut'; n.g=nutHolder(n.type); n.g.position.set(n.x,0.4,n.z); });
+const NUT_STATS={total:0}; SEA_NUTS.forEach(n=>{ NUT_STATS[n.type]=(NUT_STATS[n.type]||0)+1; NUT_STATS.total+=NUT_TYPES[n.type].energy; });
+console.info('sea nuts',JSON.stringify(NUT_STATS));
 
 /* ================= Treasure Island: hedge, barricade, crabs ================= */
 const RH=12, GAP_A=-Math.PI/2, GAP_HALF=0.15;
@@ -745,7 +772,7 @@ const CRAB_DEF=[[-4,-15.2,1,2],[4,-15.5,1,2],[-1,-17.3,1,2],[1.6,-13.7,1.45,3]];
 const crabs=CRAB_DEF.map(([dx,dz,s,hp])=>Object.assign(buildCrab(s),{hx:C.x+dx,hz:C.z+dz,scale:s,maxHp:hp,captain:s>1.2}));
 function resetCrabs(full){ crabs.forEach(c=>{ if(full||!c.dead){ Object.assign(c,{x:c.hx,z:c.hz,y:terrainY(c.hx,c.hz),hp:c.maxHp,dead:full?false:c.dead,dieT:0,stun:0,cool:0,kx:0,kz:0,flash:0,wob:rnd()*6}); c.g.visible=true; c.g.rotation.set(0,0,0); c.g.scale.setScalar(1); } }); }
 const pickups=[];
-function spawnPickup(x,z){ const g=nutModel(scene,2.0); const y=terrainY(x,z)+0.3; g.position.set(x,y,z); pickups.push({x,y,z,g,taken:false}); }
+function spawnPickup(x,z){ const g=nutHolder('acorn'); g.scale.setScalar(2.0/2.4); const y=terrainY(x,z)+0.3; g.position.set(x,y,z); pickups.push({x,y,z,g,taken:false}); }
 
 /* ================= boat ================= */
 function leafShape(){
@@ -879,6 +906,15 @@ const swipeMat=new THREE.MeshBasicMaterial({color:0xffd27a,transparent:true,opac
 const swipeRing=new THREE.Mesh(new THREE.RingGeometry(0.9,1.3,36,1,0,Math.PI*1.6),swipeMat); swipeRing.rotation.x=-Math.PI/2; scene.add(swipeRing);
 let ringT=9, swipeT=9;
 function burst(pool,x,y,z,n,spd,up){ let c=0; for(const p of pool){ if(p.life>0) continue; const a=Math.random()*TAU, s=spd*(0.4+Math.random()*0.6); p.m.position.set(x,y,z); p.vx=Math.cos(a)*s; p.vz=Math.sin(a)*s; p.vy=up*(0.6+Math.random()*0.6); p.life=0.7+Math.random()*0.4; p.m.visible=true; if(++c>=n) break; } }
+// "+N" labels that rise from a pickup point and fade (screen-projected, so the toast queue stays for story lines)
+const floaters=[], _fp=new THREE.Vector3();
+function floatText(x,y,z,text,color){ const el=document.createElement('div'); el.className='floater'; el.textContent=text; el.style.color=color; ui.hud.appendChild(el); floaters.push({el,x,y,z,t:0}); }
+function updateFloaters(dt){
+  for(let i=floaters.length-1;i>=0;i--){ const f=floaters[i]; f.t+=dt;
+    if(f.t>0.8){ f.el.remove(); floaters.splice(i,1); continue; }
+    _fp.set(f.x,f.y+f.t*1.2,f.z).project(camera);
+    f.el.style.left=((_fp.x+1)/2*window.innerWidth)+'px'; f.el.style.top=((1-_fp.y)/2*window.innerHeight)+'px'; f.el.style.opacity=String(1-Math.max(0,f.t-0.4)/0.4); }
+}
 function updateParticles(dt){
   for(const pool of [drops,sparks,feathers]) for(const p of pool){ if(p.life<=0) continue; p.life-=dt; p.vy-=(pool===drops?14:pool===feathers?1.5:5)*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.rotation.y+=dt*6; if(p.life<=0) p.m.visible=false; }
   if(ringT<1){ ringT+=dt; splashRing.scale.setScalar(1+ringT*5); ringMat.opacity=Math.max(0,0.8*(1-ringT)); }
@@ -908,7 +944,10 @@ const SFX=(()=>{
     swipe(){ noise(0.18,0.22,2400,0,'bandpass'); },
     hit(){ noise(0.1,0.3,900); tone(220,0.1,'square',0.07,120); },
     crabDown(){ [600,450,300].forEach((f,i)=>tone(f,0.12,'square',0.05,null,i*0.08)); },
-    nut(){ tone(880,0.08,'triangle',0.1,1320); tone(1320,0.12,'triangle',0.08,null,0.07); },
+    nut(type){
+      if(type==='peanut'){ tone(1320,0.06,'triangle',0.09,1760); return; }
+      if(type==='walnut'){ noise(0.1,0.28,1800); tone(520,0.12,'triangle',0.12,780); tone(784,0.2,'triangle',0.11,null,0.1); return; }
+      tone(880,0.08,'triangle',0.1,1320); tone(1320,0.12,'triangle',0.08,null,0.07); },
     crack(){ noise(0.12,0.4,3000,0,'highpass'); noise(0.35,0.3,700,0.08); tone(160,0.3,'sawtooth',0.05,60,0.05); },
     gate(){ tone(200,0.4,'sawtooth',0.035,140); [392,523.25,659.25].forEach((f,i)=>tone(f,0.25,'triangle',0.1,null,0.25+i*0.1)); },
     whirl(){ noise(0.6,0.12,300); },
@@ -1414,7 +1453,7 @@ function stepBoat(dt,inp){
   boat.x=nx; boat.z=nz;
   // energy use while sailing
   if(sailing){ energy=Math.max(0,energy-(Math.abs(boat.speed)>1.5?4.6:0.8)*dt); refreshEnergy(); if(energy<=25&&once('lowE',8)) { toast('Energy low! Grab some floating nuts.',2.6,true,true); SFX.warn(); } }
-  for(const n of SEA_NUTS){ if(!n.taken&&Math.hypot(n.x-boat.x,n.z-boat.z)<1.9){ n.taken=true; n.g.visible=false; energy=Math.min(100,energy+12); nutsEaten++; refreshEnergy(); SFX.nut(); burst(sparks,n.x,0.6,n.z,10,1.8,3); } }
+  for(const n of SEA_NUTS){ const T=NUT_TYPES[n.type]; if(!n.taken&&Math.hypot(n.x-boat.x,n.z-boat.z)<1.6+0.3*T.size){ n.taken=true; n.g.visible=false; energy=Math.min(100,energy+T.energy); nutsEaten++; refreshEnergy(); SFX.nut(n.type); burst(sparks,n.x,0.6,n.z,T.sparks,1.8,3); floatText(n.x,1.1,n.z,'+'+T.energy,T.color); } }
   P.x=boat.x-fx*0.25; P.z=boat.z-fz*0.25; P.y=boatDeckY(); P.facing=boat.h; P.vx=fx*boat.speed; P.vz=fz*boat.speed;
   if(sailing&&energy<=0){ exhausted(); return; }
   if(jumpBuffer>0){ jumpBuffer=0; P.mode='air'; P.vy=JUMP_V; P.vx=fx*Math.max(2,boat.speed); P.vz=fz*Math.max(2,boat.speed); P.x+=fx*0.5; P.z+=fz*0.5; P.glide=0; P.fromBoat=true; P.platform=null; SFX.jump(); }
@@ -1875,7 +1914,7 @@ function update(dt){
   jumpBuffer=Math.max(0,jumpBuffer-dt); actPressed=false; attackPressed=false;
   ui.time.textContent=fmtTime(elapsed);
   animateRig(dt); animateWorld(dt); updateParticles(dt); updateToast(dt);
-  updateCamera(dt); updateOcclusion();
+  updateCamera(dt); updateOcclusion(); updateFloaters(dt);
   if(P.mode==='climb'||P.mode==='boat'||!rig.root.visible){ blob.visible=false; }
   else { const pl=highestBelow(P.x,P.z,P.y+0.01); const tg=Math.max(terrainY(P.x,P.z),0.12); const gy=pl?Math.max(pl.top,tg):tg; const h=P.y-gy; blob.visible=true; blob.position.set(P.x,gy+0.03,P.z); blob.scale.setScalar(clamp(1-h*0.07,0.4,1)); blob.material.opacity=clamp(0.5-h*0.03,0.18,0.5); }
   sky.position.copy(camera.position);
@@ -1917,6 +1956,7 @@ window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z
   skill:()=>({level:skill,crabChase:+(2.3*SK().crab).toFixed(2),komodo:{prowl:+(KOMODO.prowl*SK().komodo).toFixed(2),chase:+(KOMODO.chase*SK().komodo).toFixed(2),lunge:+(KOMODO.lunge*SK().komodo).toFixed(2),bite:SK().komodoBite},hawk:{idle:SK().hawkIdle,warn:SK().hawkWarn,speed:SK().hawkSpeed},
     tinted:SIGNED_TREES.flatMap(id=>TREE[id].branches.filter(b=>b.sprite).map(b=>({tree:id,chain:b.chain,rotten:b.rotten,sym:b.sym,glow:!!(b.halo&&b.halo.visible)})))}),
   setSkill:(s)=>{ setSkill(s); return skill; },
+  nuts:()=>({stats:Object.assign({},NUT_STATS),list:SEA_NUTS.map(n=>({x:+n.x.toFixed(2),z:+n.z.toFixed(2),type:n.type,d:+n.d.toFixed(2),taken:n.taken}))}),
   swipes:()=>swipeCount, cam:()=>({mode:cam.mode,yaw:+cam.yaw.toFixed(3),pitch:+cam.pitch.toFixed(3),dragging}),
   hawk:()=>({phase:hawk.phase,idle:+hawk.idle.toFixed(2),x:+hawk.x.toFixed(2),y:+hawk.y.toFixed(2),z:+hawk.z.toFixed(2)})};
 requestAnimationFrame(frame);
