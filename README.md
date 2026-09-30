@@ -4,7 +4,7 @@ Browser game prototype spun off from the OFWG Productions pirate squirrel short.
 
 | Folder | What it is |
 |---|---|
-| `v2/` | **Current version.** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle, treasure chest). |
+| `v2/` | **Current version (2.1).** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle with decoys, a Komodo dragon below and a hawk above, treasure chest). |
 | `v1/` | First playable greybox, kept as a reference. |
 | `refs/` | Concept art: plain squirrel and full pirate gear. |
 | `vendor/` | Local copies of three.js r128 and its `GLTFLoader`, used automatically if the CDNs are unreachable. |
@@ -46,14 +46,15 @@ To host it as a playable link, turn on GitHub Pages for the repo (Settings → P
 
 | Key | Action |
 |---|---|
-| W / S | Forward / back (always relative to the squirrel) |
-| A / D | Turn. Same on the boat. When climbing, move left/right around the trunk |
+| W / S or ↑ / ↓ | Forward / back (always relative to the squirrel) |
+| A / D or ← / → | Turn. Same on the boat. When climbing, move left/right around the trunk |
 | Space | Jump. Hold while falling to glide |
 | Walk into a trunk | Climb. W up, S down (S near a branch steps onto it), Space leaps off |
 | E | Search a hollow, open the gate, board the boat, go ashore, open the chest |
-| F | Tail-swipe. Landing on a crab also hits it |
-| C | Toggle follow cam / free cam. Drag or arrow keys look around, scroll zooms |
+| F | Tail-swipe. Landing on a crab or the Komodo dragon also hits it; a swipe can bonk a diving hawk |
+| C | Toggle follow cam / free cam. Drag or Shift + arrow keys look around, scroll zooms |
 | M | Treasure map (once found) |
+| H or ? | Help card with the controls |
 | Esc / P | Pause |
 
 Touch: left thumb drags to move and turn, right thumb drags to look, with Jump, Act and Swipe buttons.
