@@ -51,8 +51,8 @@ To host it as a playable link, turn on GitHub Pages for the repo (Settings → P
 | Space | Jump. Hold while falling to glide |
 | Walk into a trunk | Climb. W up, S down (S near a branch steps onto it), Space leaps off |
 | E | Search a hollow, open the gate, board the boat, go ashore, open the chest |
-| F | Tail-swipe. Landing on a crab or the Komodo dragon also hits it; a swipe can bonk a diving hawk |
-| C | Toggle follow cam / free cam. Drag or Shift + arrow keys look around, scroll zooms |
+| F or left click | Tail-swipe. Landing on a crab or the Komodo dragon also hits it; a swipe can bonk a diving hawk |
+| C | Toggle follow cam / free cam. Right-drag (or Ctrl + drag) or Shift + arrow keys look around, scroll zooms |
 | M | Treasure map (once found) |
 | H or ? | Help card with the controls |
 | Esc / P | Pause |

@@ -171,7 +171,7 @@ body:not(.touch) .touch-only{display:none}
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="prompt" class="panel"><kbd id="promptKey" class="desk-only">E</kbd><span id="promptText"></span><div class="bar"><i id="promptBar"></i></div></div>
-  <div id="hint" class="desk-only">W/S or ↑/↓ move, A/D or ←/→ turn · Space jump, hold to glide · E act · F tail-swipe · C follow cam · drag or Shift+arrows to look · M map · H help · Esc pause</div>
+  <div id="hint" class="desk-only">W/S or ↑/↓ move, A/D or ←/→ turn · Space jump, hold to glide · E act · F or click tail-swipe · C follow cam · right-drag or Shift+arrows to look · M map · H help · Esc pause</div>
 </div>
 
 <div id="title" class="overlay">
@@ -183,8 +183,8 @@ body:not(.touch) .touch-only{display:none}
       <kbd>W A S D</kbd><span>W and S go forward and back, A and D turn. Arrow keys work too. Same on the boat.</span>
       <kbd>Space</kbd><span>Jump. Hold it while falling to glide.</span>
       <kbd>E</kbd><span>Search hollows, open the gate, board, go ashore. Mossy bark is too slick to climb.</span>
-      <kbd>F</kbd><span>Tail-swipe a crab. Landing on one works too.</span>
-      <kbd>C</kbd><span>Snap the camera behind you. Drag, or hold Shift with the arrow keys, to look around.</span>
+      <kbd>F or click</kbd><span>Tail-swipe a crab. Left-click works too, and so does landing on one.</span>
+      <kbd>C</kbd><span>Snap the camera behind you. Hold the right mouse button and drag, or hold Shift with the arrow keys, to look around.</span>
       <kbd>M</kbd><span>Read the treasure map, once you have it.</span>
       <kbd>H or ?</kbd><span>Show these controls. Esc or P pauses.</span>
     </div>
@@ -964,7 +964,7 @@ function setCamMode(m){ cam.mode=m; ui.camBtn.textContent=m==='follow'?'Follow c
 const keys=new Set();
 let jumpBuffer=0, actPressed=false, attackPressed=false, touchJump=false;
 const joy={id:null,ox:0,oy:0,x:0,y:0}, look={id:null,lx:0,ly:0};
-let dragging=false, lmx=0, lmy=0;
+let dragging=false, lmx=0, lmy=0, playFrom=0; // playFrom: when play last (re)started, so the click that did it can't swipe
 function jumpHeld(){ return keys.has('Space')||touchJump; }
 function shiftHeld(){ return keys.has('ShiftLeft')||keys.has('ShiftRight'); }
 function readInput(){
@@ -996,22 +996,31 @@ window.addEventListener('keydown',e=>{
   keys.add(k);
 });
 window.addEventListener('keyup',e=>keys.delete(e.code));
-window.addEventListener('blur',()=>{ keys.clear(); touchJump=false; });
+window.addEventListener('blur',()=>{ keys.clear(); touchJump=false; dragging=false; });
 function orbit(dx,dy,s){ if(cam.mode==='follow') setCamMode('free'); cam.yaw-=dx*s; cam.pitch=clamp(cam.pitch+dy*s*0.8,-0.15,1.25); }
+// Mouse: left click tail-swipes, right-drag orbits (Ctrl+click-drag too, for one-button Mac trackpads)
+function startDrag(e){ dragging=true; lmx=e.clientX; lmy=e.clientY; try{ canvas.setPointerCapture(e.pointerId); }catch(err){} }
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{
   SFX.ensure();
-  if(e.pointerType==='mouse'){ dragging=true; lmx=e.clientX; lmy=e.clientY; }
-  else if(e.clientX<window.innerWidth*0.45&&joy.id===null){ joy.id=e.pointerId; joy.ox=e.clientX; joy.oy=e.clientY; joy.x=joy.y=0; ui.stick.style.left=e.clientX+'px'; ui.stick.style.top=e.clientY+'px'; ui.knob.style.transform=''; ui.stick.classList.add('on'); }
+  if(e.pointerType==='mouse'){
+    if(e.button===2||(e.button===0&&e.ctrlKey)) startDrag(e);
+    else if(e.button===0&&state==='play'&&nowS()-playFrom>0.25) attackPressed=true;
+    return;
+  }
+  if(e.clientX<window.innerWidth*0.45&&joy.id===null){ joy.id=e.pointerId; joy.ox=e.clientX; joy.oy=e.clientY; joy.x=joy.y=0; ui.stick.style.left=e.clientX+'px'; ui.stick.style.top=e.clientY+'px'; ui.knob.style.transform=''; ui.stick.classList.add('on'); }
   else if(look.id===null){ look.id=e.pointerId; look.lx=e.clientX; look.ly=e.clientY; }
   try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
 });
 canvas.addEventListener('pointermove',e=>{
-  if(e.pointerType==='mouse'){ if(dragging){ const dx=e.clientX-lmx, dy=e.clientY-lmy; if(Math.abs(dx)+Math.abs(dy)>0) orbit(dx,dy,0.005); lmx=e.clientX; lmy=e.clientY; } return; }
+  if(e.pointerType==='mouse'){ if(dragging&&!(e.buttons&3)){ dragging=false; return; } if(!dragging&&(e.buttons&2)) startDrag(e); if(dragging){ const dx=e.clientX-lmx, dy=e.clientY-lmy; if(Math.abs(dx)+Math.abs(dy)>0) orbit(dx,dy,0.005); lmx=e.clientX; lmy=e.clientY; } return; }
   if(e.pointerId===joy.id){ let dx=e.clientX-joy.ox, dy=e.clientY-joy.oy; const l=Math.hypot(dx,dy), m=48; if(l>m){dx*=m/l;dy*=m/l;} joy.x=dx/m; joy.y=-dy/m; ui.knob.style.transform='translate('+dx+'px,'+dy+'px)'; }
   else if(e.pointerId===look.id){ orbit(e.clientX-look.lx,e.clientY-look.ly,0.008); look.lx=e.clientX; look.ly=e.clientY; }
 });
 function endPointer(e){ if(e.pointerType==='mouse') dragging=false; if(e.pointerId===joy.id){ joy.id=null; joy.x=joy.y=0; ui.stick.classList.remove('on'); } if(e.pointerId===look.id) look.id=null; }
 canvas.addEventListener('pointerup',endPointer); canvas.addEventListener('pointercancel',endPointer);
+canvas.addEventListener('lostpointercapture',e=>{ if(e.pointerType==='mouse') dragging=false; });
+window.addEventListener('pointerup',e=>{ if(e.pointerType==='mouse'&&!(e.buttons&2)) dragging=false; });
 canvas.addEventListener('wheel',e=>{ e.preventDefault(); cam.dist=clamp(cam.dist+e.deltaY*0.004,3.2,14); },{passive:false});
 const bJ=$('btnJump'), bA=$('btnAct'), bS=$('btnSwipe');
 bJ.addEventListener('pointerdown',e=>{ e.preventDefault(); SFX.ensure(); jumpBuffer=0.13; touchJump=true; });
@@ -1023,21 +1032,21 @@ $('againBtn').addEventListener('click',()=>{ SFX.ensure(); startGame(); });
 $('resumeBtn').addEventListener('click',()=>togglePause());
 
 function startGame(){
-  resetGame(); state='play';
+  resetGame(); state='play'; playFrom=nowS();
   ui.title.hidden=true; ui.win.hidden=true; ui.hud.hidden=false; ui.touch.hidden=!isTouch; $('gag').hidden=true;
   if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
   toast('Something glints in that hollow. Walk up to it with W and press E.',3.6,true);
 }
 function togglePause(){
-  if(state==='paused'){ state=pausedFrom; ui.paused.hidden=true; }
+  if(state==='paused'){ state=pausedFrom; ui.paused.hidden=true; playFrom=nowS(); }
   else if(['play','searching','splash','ko'].includes(state)){ pausedFrom=state; state='paused'; ui.paused.hidden=false; keys.clear(); }
 }
 function toggleHelp(){
-  if(state==='help'){ state=pausedFrom; $('help').hidden=true; }
+  if(state==='help'){ state=pausedFrom; $('help').hidden=true; playFrom=nowS(); }
   else if(['play','searching','splash','ko'].includes(state)){ pausedFrom=state; state='help'; $('help').hidden=false; keys.clear(); }
 }
 function openMap(){ if(!gear.map||!['play','searching'].includes(state)) return; pausedFrom=state; state='map'; ui.mapView.hidden=false; keys.clear(); $('mapClose').focus(); }
-function closeMap(){ if(state!=='map') return; state=pausedFrom; ui.mapView.hidden=true; $('mapClose').blur(); }
+function closeMap(){ if(state!=='map') return; state=pausedFrom; playFrom=nowS(); ui.mapView.hidden=true; $('mapClose').blur(); }
 
 /* ================= the treasure map (SVG) ================= */
 function buildMap(){
@@ -1364,9 +1373,10 @@ function hitCrab(c){
     if(guardsLeft>0) toast(c.captain?'Captain Pinch is down! '+guardsLeft+' more to go.':'Crab down! '+guardsLeft+' left guarding the barricade.',2.6,true);
     else { barT=0; toast('The crab barricade collapses! The way into the grove is open.',3.4,true); SFX.gate(); } }
 }
+let swipeCount=0;
 function tryAttack(){
   if(attackCool>0||!['ground','air'].includes(P.mode)) return;
-  attackCool=0.42; P.attackT=0.3; swipeT=0; SFX.swipe();
+  attackCool=0.42; P.attackT=0.3; swipeT=0; swipeCount++; SFX.swipe();
   for(const c of crabs){ if(c.dead) continue; const d=Math.hypot(c.x-P.x,c.z-P.z); if(d<1.35+0.3*c.scale&&Math.abs(c.y-P.y)<1.0) hitCrab(c); }
   if(komodo.awake&&komodoDist()<1.45&&Math.abs(komodo.y-P.y)<1.0) stunKomodo();
   bonkHawk();
@@ -1463,7 +1473,7 @@ function updateKomodo(dt){
   if(!k.awake&&squirrelUpInGrove()){ k.awake=true; SFX.hiss(); if(once('komodoWake',999)) toast('Something big stirs at the foot of the treasure tree. Best not fall.',3.4,true); }
   k.lungeCool=Math.max(0,k.lungeCool-dt); k.stunCool=Math.max(0,k.stunCool-dt); k.biteCool=Math.max(0,k.biteCool-dt);
   const floor=!P.platform&&inGrove(P.x,P.z)&&(P.mode==='ground'||(k.chasing&&P.mode==='air'&&P.y-terrainY(P.x,P.z)<1.6));
-  if(k.awake&&floor&&!k.chasing){ k.chasing=true; k.grace=KOMODO.grace; SFX.hiss(); if(once('komodoChase',999)) toast('The Komodo dragon! Outrun it to the rope tree, or swipe it with F.',3.6,true,true); }
+  if(k.awake&&floor&&!k.chasing){ k.chasing=true; k.grace=KOMODO.grace; SFX.hiss(); if(once('komodoChase',999)) toast('The Komodo dragon! Outrun it to the rope tree, or swipe it with F or a click.',3.6,true,true); }
   else if(k.chasing&&!floor){ k.chasing=false; k.lunge=0; k.hiss=0; SFX.hiss(); }
   const dx=P.x-k.x, dz=P.z-k.z, d=Math.hypot(dx,dz);
   let sp=0, turn=KOMODO.turnProwl, tx=komodoHome.x, tz=komodoHome.z;
@@ -1647,7 +1657,7 @@ function currentObjective(){
     return 'Board your boat at the end of the dock.';
   }
   if(P.mode==='boat') return 'Head back to Treasure Island\'s beach.';
-  if(guardsLeft>0) return 'Beat the crab guards to break their barricade. '+guardsLeft+' left. F to tail-swipe, or jump on their shells.';
+  if(guardsLeft>0) return 'Beat the crab guards to break their barricade. '+guardsLeft+' left. F or click to tail-swipe, or jump on their shells.';
   return "Climb the rope tree, then follow the map's signs from branch to branch up to the treasure tree. Press M for the map.";
 }
 function currentNote(){
@@ -1851,6 +1861,7 @@ window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z
   skill:()=>({level:skill,crabChase:+(2.3*SK().crab).toFixed(2),komodo:{prowl:+(KOMODO.prowl*SK().komodo).toFixed(2),chase:+(KOMODO.chase*SK().komodo).toFixed(2),lunge:+(KOMODO.lunge*SK().komodo).toFixed(2),bite:SK().komodoBite},hawk:{idle:SK().hawkIdle,warn:SK().hawkWarn,speed:SK().hawkSpeed},
     tinted:SIGNED_TREES.flatMap(id=>TREE[id].branches.filter(b=>b.sprite).map(b=>({tree:id,chain:b.chain,rotten:b.rotten,sym:b.sym,glow:!!(b.halo&&b.halo.visible)})))}),
   setSkill:(s)=>{ setSkill(s); return skill; },
+  swipes:()=>swipeCount, cam:()=>({mode:cam.mode,yaw:+cam.yaw.toFixed(3),pitch:+cam.pitch.toFixed(3),dragging}),
   hawk:()=>({phase:hawk.phase,idle:+hawk.idle.toFixed(2),x:+hawk.x.toFixed(2),y:+hawk.y.toFixed(2),z:+hawk.z.toFixed(2)})};
 requestAnimationFrame(frame);
 }
