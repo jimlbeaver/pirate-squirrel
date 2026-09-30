@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quest for the Chest Nuts v2</title>
+<title>Quest for the Chest Nuts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@600;700;800&display=swap">
@@ -63,6 +63,13 @@ button{font-family:var(--body)}
 .stat small{font-weight:700;color:var(--parch-dim);font-size:11px;margin-left:3px}
 .chip{pointer-events:auto;font:800 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--parchment);border:0;border-radius:6px;padding:7px 9px;cursor:pointer;white-space:nowrap}
 .chip.alt{background:var(--brass)}
+.skillTag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--parch-dim)}
+.skill{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 18px;font:700 13px/1.3 var(--body);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.skill .label{font:800 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-right:4px}
+.seg{font:800 13px/1 var(--body);color:var(--parchment);background:rgba(38,23,13,.55);border:2px solid var(--brass-soft);border-radius:7px;padding:7px 12px;cursor:pointer}
+.seg.on{color:var(--ink);background:var(--brass);border-color:var(--brass)}
+.seg:focus-visible{outline:2px solid var(--parchment);outline-offset:2px}
+.skillNote{color:var(--parch-dim);margin-left:4px}
 .chip:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 
 #toast{position:absolute;left:50%;top:max(22vh,190px);transform:translate(-50%,-8px);opacity:0;transition:opacity .25s,transform .25s;max-width:min(480px,calc(100vw - 32px));box-sizing:border-box;padding:10px 16px 11px;font:700 15px/1.4 var(--body);text-align:center;color:var(--ink);background:var(--parchment);border-radius:8px;border:2px solid var(--brass);box-shadow:0 8px 24px rgba(0,0,0,.3);text-wrap:balance}
@@ -123,7 +130,14 @@ body:not(.touch) .touch-only{display:none}
   .controls{font-size:13px;gap:7px 12px;margin:12px 0 16px}
   #toast{top:max(30vh,230px)}
 }
+#gag{position:fixed;left:50%;top:18vh;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));box-sizing:border-box;padding:18px 22px 20px;text-align:center;color:var(--ink);background:var(--parchment);border:3px solid var(--brass);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+#gag p{margin:0}
+#gag1{font:800 20px/1.4 var(--body);text-wrap:balance}
+#gag2{margin-top:12px!important;font-family:var(--display);font-size:clamp(52px,11vw,96px);line-height:1;color:var(--rust);text-shadow:0 3px 0 var(--rust-deep);animation:shake .09s linear infinite}
+@keyframes shake{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(-4px,2px) rotate(-2deg)}50%{transform:translate(3px,-3px) rotate(1.5deg)}75%{transform:translate(-2px,-1px) rotate(-1deg)}100%{transform:translate(4px,2px) rotate(2deg)}}
+@keyframes throb{50%{transform:scale(1.06)}}
 @media (prefers-reduced-motion:reduce){
+  #gag2{animation:throb 1s ease-in-out infinite}
   #toast,#prompt,.slot{transition:none}
   .slot.pop{animation:none}
   .energy.low #efill{animation:none}
@@ -149,27 +163,30 @@ body:not(.touch) .touch-only{display:none}
   <div class="stats panel">
     <span class="stat" id="time">0:00</span>
     <span class="stat" id="splashes">0<small>splashes</small></span>
+    <span class="stat skillTag" id="skillTag" title="Skill level (change it in the help card)">Normal</span>
     <button class="chip" id="camBtn" type="button">Follow cam</button>
     <button class="chip alt" id="mapBtn" type="button" hidden>Map</button>
     <button class="chip" id="mute" type="button">Sound on</button>
+    <button class="chip" id="helpBtn" type="button" aria-label="Help">?</button>
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="prompt" class="panel"><kbd id="promptKey" class="desk-only">E</kbd><span id="promptText"></span><div class="bar"><i id="promptBar"></i></div></div>
-  <div id="hint" class="desk-only">W/S move, A/D turn · Space jump, hold to glide · E act · F tail-swipe · C follow cam · drag or arrows to look · M map · Esc pause</div>
+  <div id="hint" class="desk-only">W/S or ↑/↓ move, A/D or ←/→ turn · Space jump, hold to glide · E act · F tail-swipe · C follow cam · drag or Shift+arrows to look · M map · H help · Esc pause</div>
 </div>
 
 <div id="title" class="overlay">
   <div class="card">
-    <div class="eyebrow">OFWG Productions presents</div>
-    <h1>Quest for the Chest Nuts<small>Prototype, version 2</small></h1>
+    <div class="eyebrow">Sloppy Beaver Productions presents</div>
+    <h1>Quest for the Chest Nuts<small id="version">v2.1</small></h1>
     <p class="lede">No pirate gear, no pirate ship. Search Home Isle's hollows for your kit and the treasure map, get past the Pirates Only gate, eat your way across the sea, beat the crab guards, and pick the right branches up to the Chestnut.</p>
     <div class="controls desk-only">
-      <kbd>W A S D</kbd><span>W and S go forward and back, A and D turn. Same on the boat.</span>
+      <kbd>W A S D</kbd><span>W and S go forward and back, A and D turn. Arrow keys work too. Same on the boat.</span>
       <kbd>Space</kbd><span>Jump. Hold it while falling to glide.</span>
       <kbd>E</kbd><span>Search hollows, open the gate, board, go ashore. Mossy bark is too slick to climb.</span>
       <kbd>F</kbd><span>Tail-swipe a crab. Landing on one works too.</span>
-      <kbd>C</kbd><span>Snap the camera behind you. Drag or use arrow keys to look around.</span>
+      <kbd>C</kbd><span>Snap the camera behind you. Drag, or hold Shift with the arrow keys, to look around.</span>
       <kbd>M</kbd><span>Read the treasure map, once you have it.</span>
+      <kbd>H or ?</kbd><span>Show these controls. Esc or P pauses.</span>
     </div>
     <div class="controls touch-only">
       <kbd>Left thumb</kbd><span>Up and down to go, left and right to turn.</span>
@@ -177,10 +194,17 @@ body:not(.touch) .touch-only{display:none}
       <kbd>Act</kbd><span>Search, open, board, go ashore.</span>
       <kbd>Swipe</kbd><span>Tail-swipe crabs.</span>
       <kbd>Right thumb</kbd><span>Drag to look. Follow cam button snaps it back.</span>
+      <kbd>?</kbd><span>The ? button shows these controls.</span>
     </div>
+    <div class="skill" role="radiogroup" aria-label="Skill level"><span class="label">Skill</span><button class="seg" type="button" role="radio" data-skill="easy">Easy</button><button class="seg" type="button" role="radio" data-skill="normal">Normal</button><span class="skillNote" data-skill-note></span></div>
     <button class="btn" id="startBtn" type="button">Set sail</button>
-    <p class="credit">Greybox prototype · sound effects only, music coming later</p>
+    <p class="credit">Stand-in art · sound effects only, music coming later</p>
   </div>
+</div>
+
+<div id="gag" role="status" aria-live="assertive" hidden>
+  <p id="gag1">Congratulations on your efforts... you get all D's.</p>
+  <p id="gag2" hidden>DEEZ NUTS!!!!</p>
 </div>
 
 <div id="win" class="overlay" hidden>
@@ -203,6 +227,15 @@ body:not(.touch) .touch-only{display:none}
     <h2>Paused</h2>
     <p class="lede">Press Esc or the button to get back to it.</p>
     <p style="margin:18px 0 0"><button class="btn" id="resumeBtn" type="button">Resume</button></p>
+  </div>
+</div>
+
+<div id="help" class="overlay" hidden>
+  <div class="card">
+    <h2>How to play</h2>
+    <div id="helpControls"></div>
+    <div class="skill" role="radiogroup" aria-label="Skill level"><span class="label">Skill</span><button class="seg" type="button" role="radio" data-skill="easy">Easy</button><button class="seg" type="button" role="radio" data-skill="normal">Normal</button><span class="skillNote" data-skill-note></span></div>
+    <p style="margin:0"><button class="btn" id="helpClose" type="button">Back to it</button></p>
   </div>
 </div>
 
@@ -235,6 +268,8 @@ if (hot && hot.ready) hot.ready(init); else init((hot && hot.data) || {});
 function init(saved){
 saved = saved || {};
 const $ = id => document.getElementById(id);
+const VERSION='2.1';
+$('version').textContent='v'+VERSION; document.title='Quest for the Chest Nuts v'+VERSION;
 if (!window.THREE){ $('loadError').hidden = false; $('title').hidden = true; return; }
 
 /* ================= utils ================= */
@@ -244,7 +279,7 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 function smooth(e0,e1,x){ const t=clamp((x-e0)/(e1-e0),0,1); return t*t*(3-2*t); }
 function angDiff(a,b){ let d=(b-a)%TAU; if(d>Math.PI)d-=TAU; if(d<-Math.PI)d+=TAU; return d; }
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const rnd=mulberry32(20260929);
+const rnd=mulberry32(20260929), RND=rnd;
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function fmtTime(s){ s=Math.floor(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 const nowS=()=>performance.now()/1000;
@@ -335,7 +370,10 @@ const SYMS={
   skull:{name:'Skull',parts:[{d:'M50 10 C27 10 16 26 16 44 C16 58 24 66 32 70 L32 86 L68 86 L68 70 C76 66 84 58 84 44 C84 26 73 10 50 10 Z M29 45 a9 10 0 1 0 18 0 a9 10 0 1 0 -18 0 Z M53 45 a9 10 0 1 0 18 0 a9 10 0 1 0 -18 0 Z M44 64 L50 55 L56 64 Z',f:1}]},
   star:{name:'Star',parts:[{d:'M50 6 L61 37 L94 37 L67 57 L77 90 L50 70 L23 90 L33 57 L6 37 L39 37 Z',f:1}]},
   moon:{name:'Moon',parts:[{d:'M10 52 a38 38 0 1 0 76 0 a38 38 0 1 0 -76 0 Z',f:1},{d:'M34 38 a31 31 0 1 0 62 0 a31 31 0 1 0 -62 0 Z',f:1,bg:1}]},
-  shell:{name:'Shell',parts:[{d:'M50 90 C34 80 10 56 12 38 C14 19 33 9 50 9 C67 9 86 19 88 38 C90 56 66 80 50 90 Z',f:1},{d:'M50 84 L50 17 M50 84 L32 19 M50 84 L68 19 M50 84 L18 38 M50 84 L82 38',s:1,bg:1}]}
+  shell:{name:'Shell',parts:[{d:'M50 90 C34 80 10 56 12 38 C14 19 33 9 50 9 C67 9 86 19 88 38 C90 56 66 80 50 90 Z',f:1},{d:'M50 84 L50 17 M50 84 L32 19 M50 84 L68 19 M50 84 L18 38 M50 84 L82 38',s:1,bg:1}]},
+  compass:{name:'Compass',parts:[{d:'M10 50 a40 40 0 1 0 80 0 a40 40 0 1 0 -80 0',s:1},{d:'M50 12 L59 41 L88 50 L59 59 L50 88 L41 59 L12 50 L41 41 Z',f:1}]},
+  parrot:{name:'Parrot',parts:[{d:'M24 94 C18 70 20 42 36 26 C48 14 66 14 74 26 C68 36 64 48 60 60 C56 72 54 84 56 94 Z',f:1},{d:'M34 28 L24 8 L42 20 L44 2 L54 18 Z',f:1},{d:'M70 20 C84 18 95 30 93 46 C92 55 86 62 78 65 C83 56 83 48 78 44 C74 41 69 43 64 46 Z',f:1},{d:'M44 36 a6 6 0 1 0 12 0 a6 6 0 1 0 -12 0',f:1,bg:1}]},
+  key:{name:'Key',parts:[{d:'M10 50 a17 17 0 1 0 34 0 a17 17 0 1 0 -34 0',s:1},{d:'M44 50 L90 50 M80 50 L80 68 M67 50 L67 62',s:1}]}
 };
 const SYM_KEYS=Object.keys(SYMS);
 function drawSym(g,key,x,y,size,ink,bg){
@@ -401,10 +439,10 @@ const arcPt=(deg)=>({x:C.x+7.5*Math.cos(deg*Math.PI/180),z:C.z+7.5*Math.sin(deg*
 const pS=arcPt(-90),pA=arcPt(-140),pB=arcPt(170),pCc=arcPt(120),pT=arcPt(70);
 const TREES=[
   {id:'h0',x:0,z:0,r:0.45,h:6.2},
-  {id:'h1',x:-6.5,z:-3,r:0.45,h:6.4},
+  {id:'h1',x:-6.5,z:-3,r:0.45,h:6.4,slick:true},
   {id:'h2',x:5.5,z:-5,r:0.46,h:6.6},
   {id:'h3',x:-5,z:5.5,r:0.47,h:6.8},
-  {id:'h4',x:6,z:2.5,r:0.45,h:6.4},
+  {id:'h4',x:6,z:2.5,r:0.45,h:6.4,slick:true},
   {id:'h5',x:0,z:-8,r:0.44,h:6.0},
   {id:'S',x:pS.x,z:pS.z,r:0.5,h:6.0,grove:true,rope:true},
   {id:'A',x:pA.x,z:pA.z,r:0.48,h:6.5,grove:true},
@@ -415,8 +453,9 @@ const TREES=[
   {id:'E',x:C.x+4,z:C.z+1.5,r:0.47,h:7.0,grove:true,decoy:true}
 ];
 const TREE={}; TREES.forEach(t=>{ TREE[t.id]=t; t.base=terrainY(t.x,t.z); t.top=t.base+t.h; t.branches=[]; t.trunkBottom=t.base-0.8; t.trunkH=t.top+(t.nest?0:0.9)-t.trunkBottom; t.climbMin=t.base+0.45; t.climbMax=t.nest?t.top:t.top-0.5; });
-function mossBand(t,y0,y1){ // slick, mossy bark: can't be climbed
+function mossBand(t,y0,y1,rnd){ // slick, mossy bark: can't be climbed
   if(y1-y0<0.2) return;
+  rnd=rnd||RND;
   const h=y1-y0;
   occluders.push(mesh(new THREE.CylinderGeometry(trunkR(t,y1)*1.04,trunkR(t,y0)*1.05,h,10),MAT.slick,t.x,y0+h/2,t.z));
   const n=Math.max(5,Math.round(h*4));
@@ -448,12 +487,22 @@ function addBranch(t,angle,top,len,opts){
   p.parts.forEach(o=>{ o.userData.home={p:o.position.clone(),r:o.rotation.clone()}; });
   return p;
 }
+let haloTexCache=null;
+function haloTex(){
+  if(haloTexCache) return haloTexCache;
+  const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(32,32,10,32,32,32); gr.addColorStop(0,'rgba(255,222,120,0.95)'); gr.addColorStop(0.55,'rgba(255,200,80,0.55)'); gr.addColorStop(1,'rgba(255,180,50,0)');
+  g.fillStyle=gr; g.fillRect(0,0,64,64); return haloTexCache=new THREE.CanvasTexture(c);
+}
 function addTag(p){ // carved sign on a stick near the branch base
   const g=new THREE.Group(); const al=p.start+0.25;
   g.position.set(p.tree.x+p.ux*al,p.top,p.tree.z+p.uz*al); scene.add(g);
   mesh(new THREE.CylinderGeometry(0.025,0.03,0.5,5),MAT.barkDark,0,0.25,0,g);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:symTex.star,transparent:true}));
   sp.position.y=0.66; sp.scale.set(0.56,0.56,1); g.add(sp);
+  if(p.chain>=0){ // Easy mode's hint: a soft glow behind the true sign, hidden on Normal
+    const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:haloTex(),transparent:true,depthWrite:false,opacity:0.85}));
+    halo.position.y=0.66; halo.scale.set(1.05,1.05,1); halo.renderOrder=-1; halo.visible=false; g.add(halo); p.halo=halo; }
   p.tag=g; p.sprite=sp; p.parts.push(g); g.userData.home={p:g.position.clone(),r:g.rotation.clone()};
 }
 // Home Isle branch network
@@ -465,18 +514,22 @@ HOME_LINKS.forEach(([a,b,rise])=>{
 const H0=TREE.h0;
 const spawnBranch=addBranch(H0,Math.PI/2+0.35,H0.base+3.4,3.0,{to:'sea'});
 // Grove: [from, to, launch height above base, chain step or -1 for a rotten decoy]
+// Every chain tree has 3-4 signed launches, one true. Decoys aimed at D/E get a rotten signed
+// partner there so they look like bridges; decoys skipping ahead along the ring have none.
 const GROVE_LINKS=[
-  ['S','A',2.8,0],['S','D',2.0,-1],['S','E',3.6,-1],
-  ['A','B',4.2,1],['A','E',3.3,-1],
-  ['B','Cc',5.4,2],['B','E',4.7,-1],
-  ['Cc','T',6.4,3],['Cc','D',5.8,-1]
+  ['S','A',2.8,0],['S','D',2.0,-1],['S','E',3.6,-1],['S','B',4.4,-1],
+  ['A','B',4.2,1],['A','E',2.9,-1],['A','Cc',5.2,-1],
+  ['B','Cc',5.4,2],['B','E',4.7,-1],['B','T',6.2,-1],
+  ['Cc','T',6.4,3],['Cc','D',5.8,-1],['Cc','A',4.4,-1]
 ];
 const CHAIN=['S','A','B','Cc','T'];
 GROVE_LINKS.forEach(([a,b,rel,step])=>{
   const A=TREE[a],B=TREE[b]; const d=Math.hypot(B.x-A.x,B.z-A.z), ang=Math.atan2(B.z-A.z,B.x-A.x);
   const top=A.base+rel;
-  if(step>=0){ const len=(d-2.4)/2; const p=addBranch(A,ang,top,len,{to:b,chain:step}); addTag(p); addBranch(B,ang+Math.PI,top-0.2,len,{to:a}); }
-  else { const p=addBranch(A,ang,top,2.2,{to:b,rotten:true}); addTag(p); }
+  if(step>=0){ const len=(d-2.4)/2; const p=addBranch(A,ang,top,len,{to:b,chain:step}); addTag(p);
+    const q=addBranch(B,ang+Math.PI,top-0.2,len,{to:a}); if(!B.nest){ q.arrive=true; addTag(q); } }
+  else { const p=addBranch(A,ang,top,2.2,{to:b,rotten:true}); addTag(p);
+    if(B.decoy) addTag(addBranch(B,ang+Math.PI,top-0.2,2.0,{to:a,rotten:true})); }
 });
 TREES.filter(t=>t.grove&&!t.decoy).forEach(t=>{
   const tops=t.branches.map(b=>b.top);
@@ -492,7 +545,10 @@ TREES.filter(t=>!t.grove).forEach(t=>{
     addBranch(t,best,top,len);
   });
 });
+// slick Home Isle trees: mossy up to their lowest branch, so they're only climbed from a branch
+TREES.filter(t=>t.slick).forEach(t=>{ t.climbMin=Math.min(...t.branches.map(b=>b.top))-0.25; });
 // trunks, roots, canopies, rope bands, slick bark
+const homeMossRnd=mulberry32(4101);
 TREES.forEach(t=>{
   occluders.push(mesh(new THREE.CylinderGeometry(t.r*0.75,t.r*1.12,t.trunkH,9,3),MAT.bark,t.x,t.trunkBottom+t.trunkH/2,t.z));
   mesh(new THREE.CylinderGeometry(t.r*1.05,t.r*1.9,0.9,9),MAT.bark,t.x,t.base+0.1,t.z);
@@ -500,6 +556,7 @@ TREES.forEach(t=>{
     if(t.decoy) mossBand(t,t.base+0.2,t.top);
     else { mossBand(t,t.base+0.2,t.climbMin-0.05); if(!t.nest) mossBand(t,t.climbMax+0.1,t.top); }
   }
+  if(t.slick) mossBand(t,t.base+0.2,t.climbMin-0.05,homeMossRnd);
   if(t.rope){ for(let y=t.base+0.5;y<t.climbMax;y+=0.45){ const r=mesh(new THREE.TorusGeometry(trunkR(t,y)+0.02,0.04,5,14),MAT.rope,t.x,y,t.z); r.rotation.x=Math.PI/2+(Math.sin(y*3)*0.12); r.userData.leaf=true; r.userData.fr=0.8; occluders.push(r); } }
   if(!t.nest) leafCluster(t.x,t.top+0.95,t.z,1.75,7,true);
 });
@@ -759,6 +816,8 @@ const drops=[]; { const dg=new THREE.SphereGeometry(0.06,6,4), dm=new THREE.Mesh
   for(let i=0;i<48;i++){ const m=new THREE.Mesh(dg,dm); m.visible=false; scene.add(m); drops.push({m,vx:0,vy:0,vz:0,life:0}); } }
 const sparks=[]; { const sg=new THREE.OctahedronGeometry(0.05);
   for(let i=0;i<40;i++){ const m=new THREE.Mesh(sg,MAT.glint); m.visible=false; scene.add(m); sparks.push({m,vx:0,vy:0,vz:0,life:0}); } }
+const feathers=[]; { const fg=new THREE.PlaneGeometry(0.09,0.2), fm=new THREE.MeshBasicMaterial({color:0x8a5a32,side:THREE.DoubleSide});
+  for(let i=0;i<24;i++){ const m=new THREE.Mesh(fg,fm); m.visible=false; scene.add(m); feathers.push({m,vx:0,vy:0,vz:0,life:0}); } }
 const ringMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
 const splashRing=new THREE.Mesh(new THREE.RingGeometry(0.3,0.44,32),ringMat); splashRing.rotation.x=-Math.PI/2; scene.add(splashRing);
 const swipeMat=new THREE.MeshBasicMaterial({color:0xffd27a,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
@@ -766,7 +825,7 @@ const swipeRing=new THREE.Mesh(new THREE.RingGeometry(0.9,1.3,36,1,0,Math.PI*1.6
 let ringT=9, swipeT=9;
 function burst(pool,x,y,z,n,spd,up){ let c=0; for(const p of pool){ if(p.life>0) continue; const a=Math.random()*TAU, s=spd*(0.4+Math.random()*0.6); p.m.position.set(x,y,z); p.vx=Math.cos(a)*s; p.vz=Math.sin(a)*s; p.vy=up*(0.6+Math.random()*0.6); p.life=0.7+Math.random()*0.4; p.m.visible=true; if(++c>=n) break; } }
 function updateParticles(dt){
-  for(const pool of [drops,sparks]) for(const p of pool){ if(p.life<=0) continue; p.life-=dt; p.vy-=(pool===drops?14:5)*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.rotation.y+=dt*6; if(p.life<=0) p.m.visible=false; }
+  for(const pool of [drops,sparks,feathers]) for(const p of pool){ if(p.life<=0) continue; p.life-=dt; p.vy-=(pool===drops?14:pool===feathers?1.5:5)*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.rotation.y+=dt*6; if(p.life<=0) p.m.visible=false; }
   if(ringT<1){ ringT+=dt; splashRing.scale.setScalar(1+ringT*5); ringMat.opacity=Math.max(0,0.8*(1-ringT)); }
   if(swipeT<0.3){ swipeT+=dt; swipeRing.position.set(P.x,P.y+0.3,P.z); swipeRing.rotation.z=-rig.root.rotation.y+swipeT*14; swipeRing.scale.setScalar(0.8+swipeT*2); swipeMat.opacity=Math.max(0,0.75*(1-swipeT/0.3)); } else swipeMat.opacity=0;
 }
@@ -799,7 +858,13 @@ const SFX=(()=>{
     gate(){ tone(200,0.4,'sawtooth',0.035,140); [392,523.25,659.25].forEach((f,i)=>tone(f,0.25,'triangle',0.1,null,0.25+i*0.1)); },
     whirl(){ noise(0.6,0.12,300); },
     warn(){ tone(660,0.08,'square',0.04); },
-    win(){ [392,523.25,659.25,783.99,659.25,1046.5].forEach((f,i)=>tone(f,0.32,'triangle',0.13,null,i*0.13)); }
+    win(){ [392,523.25,659.25,783.99,659.25,1046.5].forEach((f,i)=>tone(f,0.32,'triangle',0.13,null,i*0.13)); },
+    hiss(){ noise(0.55,0.22,3800,0,'highpass'); },
+    thud(){ tone(68,0.14,'sine',0.13,42); },
+    screech(){ tone(2600,0.6,'sawtooth',0.045,1500); tone(3100,0.45,'square',0.022,1800,0.06); },
+    whoosh(){ noise(0.6,0.28,1600,0,'bandpass'); },
+    chomp(){ noise(0.08,0.35,1200); tone(170,0.09,'square',0.08,90); tone(150,0.1,'square',0.08,80,0.11); },
+    deez(){ noise(0.18,0.4,700); [392,392,523.25].forEach((f,i)=>tone(f,0.2,'sawtooth',0.08,null,i*0.12)); tone(783.99,0.7,'square',0.07,null,0.36); noise(0.3,0.3,4000,0.36,'highpass'); }
   };
 })();
 
@@ -837,6 +902,9 @@ ui.mute.addEventListener('click',()=>{ SFX.setMuted(!SFX.isMuted()); ui.mute.tex
 ui.camBtn.addEventListener('click',()=>{ setCamMode(cam.mode==='follow'?'free':'follow'); ui.camBtn.blur(); });
 ui.mapBtn.addEventListener('click',()=>{ openMap(); ui.mapBtn.blur(); });
 $('mapClose').addEventListener('click',()=>closeMap());
+document.querySelectorAll('#title .controls').forEach(n=>$('helpControls').appendChild(n.cloneNode(true)));
+$('helpBtn').addEventListener('click',()=>{ toggleHelp(); $('helpBtn').blur(); });
+$('helpClose').addEventListener('click',()=>toggleHelp());
 
 /* ================= game state ================= */
 const RUN=5.2, GLIDE=6.2, GLIDE_FALL=1.4, GLIDE_MAX=1.6, G=24, JUMP_V=7.6, CLIMB=2.8, CLIMB_SIDE=2.6, TURN=3.0;
@@ -850,12 +918,17 @@ const P={x:0,y:0,z:0,vx:0,vy:0,vz:0,mode:'ground',facing:0,coyote:0,glide:0,glid
 let lastSafe={x:0,y:0,z:0};
 function once(key,sec){ const t=nowS(); if(t-(msgAt[key]||-99)<sec) return false; msgAt[key]=t; return true; }
 function spawnPoint(){ const b=spawnBranch, a=0.2; return {x:b.cx+b.ux*a,y:b.top,z:b.cz+b.uz*a}; }
+function paintSym(b,key){ b.sym=key; b.sprite.material.map=symTex[key]; b.sprite.material.needsUpdate=true; }
+const SIGNED_TREES=['S','A','B','Cc','D','E'];
 function assignSymbols(){
   seq=shuffle(SYM_KEYS.slice()).slice(0,4);
-  ['S','A','B','Cc'].forEach((id,k)=>{
-    const others=shuffle(SYM_KEYS.filter(s=>s!==seq[k]));
-    TREE[id].branches.filter(b=>b.sprite).forEach(b=>{ const key=b.chain===k?seq[k]:others.pop(); b.sym=key; b.sprite.material.map=symTex[key]; b.sprite.material.needsUpdate=true; });
+  CHAIN.slice(0,4).forEach((id,k)=>{
+    // the last pick is another tree's true sign: right sign, wrong tree
+    const lure=shuffle(seq.filter(s=>s!==seq[k]))[0];
+    const others=shuffle(SYM_KEYS.filter(s=>s!==seq[k]&&s!==lure)); others.push(lure);
+    TREE[id].branches.filter(b=>b.sprite).forEach(b=>paintSym(b,b.chain===k||b.arrive?seq[k]:others.pop()));
   });
+  ['D','E'].forEach(id=>{ const pool=shuffle(SYM_KEYS.slice()); TREE[id].branches.filter(b=>b.sprite).forEach(b=>paintSym(b,pool.pop())); });
   buildMap();
 }
 function restoreBranch(b){ b.broken=false; b.fallT=-1; b.creak=0; b.parts.forEach(o=>{ o.visible=true; o.position.copy(o.userData.home.p); o.rotation.copy(o.userData.home.r); }); }
@@ -868,7 +941,7 @@ function resetGame(){
   gateLeaves.forEach(l=>l.g.rotation.y=0);
   SEA_NUTS.forEach(n=>{ n.taken=false; n.g.visible=true; });
   pickups.forEach(p=>scene.remove(p.g)); pickups.length=0;
-  resetCrabs(true); guardsLeft=crabs.length; barT=-1; barricade.visible=true; barLogs.forEach(l=>{ l.visible=true; l.position.copy(l.userData.home.p); l.rotation.copy(l.userData.home.r); });
+  resetCrabs(true); resetKomodo(); resetHawk(); guardsLeft=crabs.length; barT=-1; barricade.visible=true; barLogs.forEach(l=>{ l.visible=true; l.position.copy(l.userData.home.p); l.rotation.copy(l.userData.home.r); });
   assignSymbols();
   const s=spawnPoint(); Object.assign(P,{x:s.x,y:s.y,z:s.z,vx:0,vy:0,vz:0,mode:'ground',facing:Math.atan2(-spawnBranch.ux,-spawnBranch.uz),glide:0,coyote:0,climbCool:0,pinchCool:0,platform:spawnBranch,fromBoat:false,creak:0,attackT:0});
   lastSafe=s;
@@ -893,9 +966,12 @@ let jumpBuffer=0, actPressed=false, attackPressed=false, touchJump=false;
 const joy={id:null,ox:0,oy:0,x:0,y:0}, look={id:null,lx:0,ly:0};
 let dragging=false, lmx=0, lmy=0;
 function jumpHeld(){ return keys.has('Space')||touchJump; }
+function shiftHeld(){ return keys.has('ShiftLeft')||keys.has('ShiftRight'); }
 function readInput(){
   let x=0,y=0;
   if(keys.has('KeyW'))y+=1; if(keys.has('KeyS'))y-=1; if(keys.has('KeyD'))x+=1; if(keys.has('KeyA'))x-=1;
+  if(!shiftHeld()){ if(keys.has('ArrowUp'))y+=1; if(keys.has('ArrowDown'))y-=1; if(keys.has('ArrowRight'))x+=1; if(keys.has('ArrowLeft'))x-=1; }
+  x=clamp(x,-1,1); y=clamp(y,-1,1);
   if(joy.id!==null){ x+=joy.x; y+=joy.y; }
   const l=Math.hypot(x,y); if(l>1){x/=l;y/=l;} return {x,y};
 }
@@ -906,6 +982,8 @@ window.addEventListener('keydown',e=>{
   if(state==='title'){ if(k==='Enter'||k==='Space'){ e.preventDefault(); startGame(); } return; }
   if(state==='win'){ if(k==='Enter'){ e.preventDefault(); startGame(); } return; }
   if(state==='map'){ if(k==='KeyM'||k==='Escape'||k==='Enter') closeMap(); return; }
+  if(state==='help'){ if(k==='KeyH'||e.key==='?'||k==='Escape'||k==='Enter') toggleHelp(); return; }
+  if(k==='KeyH'||e.key==='?'){ if(state!=='paused') toggleHelp(); return; }
   if(k==='Escape'||k==='KeyP'){ togglePause(); return; }
   if(state==='paused') return;
   if(!e.repeat){
@@ -946,7 +1024,7 @@ $('resumeBtn').addEventListener('click',()=>togglePause());
 
 function startGame(){
   resetGame(); state='play';
-  ui.title.hidden=true; ui.win.hidden=true; ui.hud.hidden=false; ui.touch.hidden=!isTouch;
+  ui.title.hidden=true; ui.win.hidden=true; ui.hud.hidden=false; ui.touch.hidden=!isTouch; $('gag').hidden=true;
   if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
   toast('Something glints in that hollow. Walk up to it with W and press E.',3.6,true);
 }
@@ -954,13 +1032,18 @@ function togglePause(){
   if(state==='paused'){ state=pausedFrom; ui.paused.hidden=true; }
   else if(['play','searching','splash','ko'].includes(state)){ pausedFrom=state; state='paused'; ui.paused.hidden=false; keys.clear(); }
 }
+function toggleHelp(){
+  if(state==='help'){ state=pausedFrom; $('help').hidden=true; }
+  else if(['play','searching','splash','ko'].includes(state)){ pausedFrom=state; state='help'; $('help').hidden=false; keys.clear(); }
+}
 function openMap(){ if(!gear.map||!['play','searching'].includes(state)) return; pausedFrom=state; state='map'; ui.mapView.hidden=false; keys.clear(); $('mapClose').focus(); }
 function closeMap(){ if(state!=='map') return; state=pausedFrom; ui.mapView.hidden=true; $('mapClose').blur(); }
 
 /* ================= the treasure map (SVG) ================= */
 function buildMap(){
   const S=9, cx=210, cy=330, INK='#3a2414', RED='#a3321c', PAPER='#ecd7a8';
-  const px=(x)=>cx+(x-C.x)*S, py=(z)=>cy-(z-C.z)*S;
+  // north up: facing +z, the world's +x is on your left, so x runs right-to-left on the map
+  const px=(x)=>cx-(x-C.x)*S, py=(z)=>cy-(z-C.z)*S;
   let s='';
   // island outline
   let d=''; for(let i=0;i<=72;i++){ const th=i/72*TAU; const Rr=TI.R+TI.wob*(Math.sin(3*th+1)+0.6*Math.cos(5*th+0.4))+0.4; const x=C.x+Math.cos(th)*Rr, z=C.z+Math.sin(th)*Rr; d+=(i?'L':'M')+px(x).toFixed(1)+' '+py(z).toFixed(1); }
@@ -989,7 +1072,8 @@ function buildMap(){
   const tS=TREE.S, tT=TREE.T;
   s+='<text x="'+(px(tS.x)+14)+'" y="'+(py(tS.z)+5)+'" font-family="Nunito,sans-serif" font-weight="800" font-size="12" fill="'+INK+'">rope tree: climb here</text>';
   const xx=px(tT.x), xy=py(tT.z); s+='<path d="M'+(xx-9)+' '+(xy-9)+' L'+(xx+9)+' '+(xy+9)+' M'+(xx+9)+' '+(xy-9)+' L'+(xx-9)+' '+(xy+9)+'" stroke="'+RED+'" stroke-width="4" stroke-linecap="round"/>';
-  s+='<text x="'+(xx+16)+'" y="'+(xy+4)+'" font-family="Nunito,sans-serif" font-weight="800" font-size="12" fill="'+RED+'">the Chestnut</text>';
+  s+='<text x="'+(xx-16)+'" y="'+(xy+4)+'" text-anchor="end" paint-order="stroke" stroke="#e2c68b" stroke-width="4" stroke-linejoin="round" font-family="Nunito,sans-serif" font-weight="800" font-size="12" fill="'+RED+'">the Chestnut</text>';
+  s+='<text x="'+(xx-16)+'" y="'+(xy+19)+'" text-anchor="end" paint-order="stroke" stroke="#e2c68b" stroke-width="4" stroke-linejoin="round" font-family="Pirata One,Georgia,serif" font-size="14" fill="'+INK+'">Here be dragons</text>';
   // compass
   s+='<g transform="translate(372 190)"><circle r="17" fill="none" stroke="'+INK+'" stroke-width="1.5"/><path d="M0 -15 L5 0 L0 15 L-5 0 Z" fill="'+INK+'"/><text y="-21" text-anchor="middle" font-family="Pirata One,Georgia,serif" font-size="14" fill="'+INK+'">N</text></g>';
   // header + legend
@@ -1024,8 +1108,8 @@ function clampInto(p){
   P.vx*=0.5; P.vz*=0.5;
 }
 function assistFor(){ // leap from a branch toward its partner branch on the next tree
-  const p=P.platform; if(!p||p.kind!=='box'||!p.to||!TREE[p.to]) return null;
-  const lb=TREE[p.to].branches.find(b=>b.to===p.tree.id&&!b.broken); if(!lb) return null;
+  const p=P.platform; if(!p||p.kind!=='box'||!p.to||!TREE[p.to]||p.rotten) return null;
+  const lb=TREE[p.to].branches.find(b=>b.to===p.tree.id&&!b.broken&&!b.rotten); if(!lb) return null;
   const a=lb.hl-0.8, x=lb.cx+lb.ux*a, z=lb.cz+lb.uz*a, dx=x-P.x, dz=z-P.z, d=Math.hypot(dx,dz);
   if(d>9||Math.abs(angDiff(P.facing,Math.atan2(dx,dz)))>0.7) return null;
   return {x,z,top:lb.top};
@@ -1034,7 +1118,8 @@ function doJump(){ P.assist=assistFor(); P.vy=JUMP_V; P.mode='air'; P.platform=n
 function enterClimb(t,a){ P.mode='climb'; P.climbTree=t; P.climbA=a; P.vx=P.vy=P.vz=0; P.platform=null; P.y=clamp(P.y,t.climbMin,t.climbMax); SFX.grab(); }
 function canGrab(t){
   if(t.decoy) return false;
-  if(!t.grove) return P.y>=t.climbMin-0.35;
+  if(t.slick) return P.mode==='ground'&&!!P.platform&&P.platform.tree===t;
+  if(!t.grove) return P.mode==='ground'||P.y>=t.climbMin-0.35;
   if(P.mode!=='ground') return false;
   if(P.platform&&P.platform.tree===t) return true;
   return !!t.rope&&!P.platform;
@@ -1049,7 +1134,7 @@ function trunkCollide(mx,mz,ml){
       const inward=-(mx*dx+mz*dz)/d;
       if(ml>0.2&&inward>0.35&&!(P.climbCool>0&&P.climbCoolTree===t)){
         if(canGrab(t)){ enterClimb(t,Math.atan2(dz,dx)); return; }
-        if(P.mode==='ground'&&once('slick',4)){ toast(t.grove?(P.platform?'Mossy bark is too slick to climb. Only bare bark will hold you.':'Mossy bark! Too slick to climb from the ground. Try the rope-wrapped tree.'):'Too slick to climb from here.',3.4); SFX.slip(); }
+        if(P.mode==='ground'&&once('slick',4)){ toast(t.grove?(P.platform?'Mossy bark is too slick to climb. Only bare bark will hold you.':'Mossy bark! Too slick to climb from the ground. Try the rope-wrapped tree.'):'Mossy bark! Too slick to climb from the ground. Leap onto one of its branches from a neighbouring tree.',3.4); SFX.slip(); }
       }
       P.x=t.x+dx/d*R; P.z=t.z+dz/d*R;
     }
@@ -1143,6 +1228,7 @@ function stepPlayer(dt,inp){
     worldCollide(mx,mz,ml,prevX,prevZ); if(P.mode!=='air') return;
     // stomp a crab
     if(P.vy<0) for(const c of crabs){ if(c.dead) continue; const d=Math.hypot(P.x-c.x,P.z-c.z); if(d<0.55*c.scale+0.1&&P.y>c.y+0.15&&P.y<c.y+0.75*c.scale){ hitCrab(c); P.vy=7.2; P.y=c.y+0.8*c.scale; return; } }
+    if(P.vy<0&&komodo.awake&&komodoDist()<0.5&&P.y>komodo.y+0.25&&P.y<komodo.y+0.95){ stunKomodo(); P.vy=7.2; P.y=komodo.y+1.0; return; }
     let landed=null; if(P.vy<=0) landed=findLanding(P.x,P.z,P.y,ny);
     const tg=terrainY(P.x,P.z);
     if(landed){ land(landed.top); P.platform=landed; if(!landed.rotten) lastSafe=safeOn(landed,P.x,P.z); }
@@ -1231,13 +1317,13 @@ function exhausted(){
 let koKind='sea';
 function knockOut(){ state='ko'; koT=0; koKind='isle'; toast('Knocked out! You wake up back on the beach.',3,true,true); SFX.slip(); }
 function finishKO(){
-  state='play';
+  state='play'; resetHawk();
   if(koKind==='sea'){
     Object.assign(boat,{x:MOOR.x,z:MOOR.z,h:MOOR.h,speed:0,spin:0}); energy=100; refreshEnergy();
     SEA_NUTS.forEach(n=>{ n.taken=false; n.g.visible=true; });
     P.mode='boat'; if(cam.mode==='follow') cam.yaw=followYaw();
   } else {
-    energy=70; refreshEnergy(); resetCrabs(false);
+    energy=70; refreshEnergy(); resetCrabs(false); resetKomodo();
     Object.assign(P,{x:tiLanding.x,y:tiLanding.y+0.02,z:tiLanding.z,mode:'air',vx:0,vy:0,vz:0,platform:null}); rig.root.visible=true;
   }
 }
@@ -1282,6 +1368,8 @@ function tryAttack(){
   if(attackCool>0||!['ground','air'].includes(P.mode)) return;
   attackCool=0.42; P.attackT=0.3; swipeT=0; SFX.swipe();
   for(const c of crabs){ if(c.dead) continue; const d=Math.hypot(c.x-P.x,c.z-P.z); if(d<1.35+0.3*c.scale&&Math.abs(c.y-P.y)<1.0) hitCrab(c); }
+  if(komodo.awake&&komodoDist()<1.45&&Math.abs(komodo.y-P.y)<1.0) stunKomodo();
+  bonkHawk();
 }
 function updateCrabs(dt){
   const playerHere=(P.mode==='ground'||P.mode==='air')&&!P.platform&&onTreasure(P.x,P.z)&&state==='play';
@@ -1294,8 +1382,8 @@ function updateCrabs(dt){
       const dx=P.x-c.x, dz=P.z-c.z, d=Math.hypot(dx,dz);
       const chase=playerHere&&d<7&&Math.hypot(P.x-c.hx,P.z-c.hz)<11;
       let tx,tz,sp;
-      if(chase){ tx=P.x; tz=P.z; sp=2.3*(c.captain?0.85:1); }
-      else { c.wob+=dt*0.7; tx=c.hx+Math.cos(c.wob+i)*1.3; tz=c.hz+Math.sin(c.wob*1.3+i)*0.8; sp=1.0; }
+      if(chase){ tx=P.x; tz=P.z; sp=2.3*(c.captain?0.85:1)*SK().crab; }
+      else { c.wob+=dt*0.7; tx=c.hx+Math.cos(c.wob+i)*1.3; tz=c.hz+Math.sin(c.wob*1.3+i)*0.8; sp=1.0*SK().crab; }
       const ex=tx-c.x, ez=tz-c.z, el=Math.hypot(ex,ez);
       if(el>0.4){ c.x+=ex/el*sp*dt; c.z+=ez/el*sp*dt; }
       faceX=chase?dx:ex; faceZ=chase?dz:ez;
@@ -1317,6 +1405,194 @@ function updateCrabs(dt){
   if(barT>=0&&barT<2){ barT+=dt; barLogs.forEach((l,i)=>{ l.position.y=l.userData.home.p.y-barT*0.9; l.position.x=l.userData.home.p.x+(i%2?1:-1)*barT*0.6; l.rotation.y=barT*(i%2?0.8:-0.8); }); if(barT>=1.6) barLogs.forEach(l=>l.visible=false); }
   for(const p of pickups){ if(p.taken) continue; p.g.rotation.y+=dt*2; p.g.position.y=p.y+Math.sin(tAll*3)*0.08; if(Math.hypot(P.x-p.x,P.z-p.z)<0.9&&Math.abs(P.y-p.y)<1.2){ p.taken=true; p.g.visible=false; energy=Math.min(100,energy+15); nutsEaten++; refreshEnergy(); SFX.nut(); burst(sparks,p.x,p.y+0.2,p.z,10,1.8,3); } }
 }
+
+/* ================= Komodo dragon (grove floor) ================= */
+// Skill levels scale the enemy tuning below (and crab speeds); Easy also lights up the true grove signs.
+const SKILL={
+  normal:{crab:1,komodo:1,komodoBite:20,hawkIdle:5.0,hawkWarn:1.5,hawkSpeed:13,hints:false},
+  easy:{crab:0.6,komodo:0.6,komodoBite:10,hawkIdle:10.0,hawkWarn:2.2,hawkSpeed:7.5,hints:true}
+};
+let skill='normal';
+try{ if(localStorage.getItem('psq.skill')==='easy') skill='easy'; }catch(e){}
+const SK=()=>SKILL[skill];
+const KOMODO={prowl:2.5,chase:4.0,lunge:7.0,lungeT:0.4,hissT:0.35,recoverT:0.6,lungeCool:2.0,lungeRange:3.2,grace:0.6,stun:1.5,stunCool:1.0,biteCool:1.3,offset:1.5,turnProwl:1.8,turnChase:2.4};
+const komodoHome=(()=>{ const t=TREE.T, dx=C.x-t.x, dz=C.z-t.z, d=Math.hypot(dx,dz); return {x:t.x+dx/d*1.7,z:t.z+dz/d*1.7,h:Math.atan2(dx,dz)}; })();
+function buildKomodo(){
+  const g=new THREE.Group(); scene.add(g);
+  const skin=mat(0x62603f), belly=mat(0x8d8458);
+  const body=ball(1,skin,0,0.32,0,g); body.scale.set(0.34,0.24,0.8);
+  ball(1,belly,0,0.22,0.05,g).scale.set(0.3,0.16,0.7);
+  const head=new THREE.Group(); head.position.set(0,0.36,0.72); g.add(head);
+  ball(1,skin,0,0,0.12,head).scale.set(0.2,0.14,0.3);
+  ball(1,skin,0,-0.03,0.36,head).scale.set(0.13,0.09,0.18);
+  [-1,1].forEach(s=>{ ball(0.035,MAT.black,0.13*s,0.07,0.2,head); ball(0.018,MAT.black,0.05*s,0.03,0.52,head); });
+  const tongue=new THREE.Group(); tongue.position.set(0,-0.05,0.5); head.add(tongue);
+  mesh(new THREE.BoxGeometry(0.03,0.01,0.22),MAT.red,0,0,0.11,tongue);
+  [-1,1].forEach(s=>{ const f=mesh(new THREE.BoxGeometry(0.02,0.01,0.08),MAT.red,0.02*s,0,0.25,tongue); f.rotation.y=0.4*s; });
+  const tail=[]; let par=g, prevL=0;
+  [[0.22,0.55],[0.15,0.5],[0.09,0.5]].forEach(([r,l],i)=>{ const seg=new THREE.Group(); seg.position.set(0,i?0:0.3,i?-prevL:-0.68); par.add(seg);
+    const c=mesh(new THREE.ConeGeometry(r,l+0.12,7),skin,0,0,-l/2,seg); c.rotation.x=-Math.PI/2; tail.push(seg); par=seg; prevL=l; });
+  const legs=[]; [[1,0.42],[-1,0.42],[-1,-0.4],[1,-0.4]].forEach(([s,z])=>{ const leg=new THREE.Group(); leg.position.set(0.28*s,0.24,z); g.add(leg);
+    const u=mesh(new THREE.BoxGeometry(0.26,0.1,0.11),skin,0.12*s,-0.05,0,leg); u.rotation.z=-0.5*s; ball(1,skin,0.24*s,-0.19,0.06,leg).scale.set(0.08,0.05,0.12); legs.push(leg); });
+  g.scale.setScalar(1.1);
+  return {g,body,head,tongue,tail,legs,skin};
+}
+const komodo=Object.assign(buildKomodo(),{x:0,y:0,z:0,h:0,sp:0,gait:0});
+function resetKomodo(){
+  Object.assign(komodo,{x:komodoHome.x,z:komodoHome.z,h:komodoHome.h,sp:0,awake:false,chasing:false,grace:0,hiss:0,lunge:0,recover:0,lungeCool:0,stun:0,stunCool:0,biteCool:0,kx:0,kz:0,flash:0});
+  komodo.y=terrainY(komodo.x,komodo.z); placeKomodo(0);
+}
+function inGrove(x,z){ return Math.hypot(x-C.x,z-C.z)<RH-0.3; }
+function squirrelUpInGrove(){ return (P.mode==='climb'&&P.climbTree.grove)||(!!P.platform&&(P.platform===nestPlat||(!!P.platform.tree&&P.platform.tree.grove))); }
+function komodoDist(){ // squirrel to the nearest point on the body's spine, tail root to snout
+  const k=komodo, fx=Math.sin(k.h), fz=Math.cos(k.h), a=clamp((P.x-k.x)*fx+(P.z-k.z)*fz,-0.7,1.1);
+  return Math.hypot(P.x-(k.x+fx*a),P.z-(k.z+fz*a));
+}
+function stunKomodo(){
+  const k=komodo; if(!k.awake) return;
+  const dx=k.x-P.x, dz=k.z-P.z, d=Math.hypot(dx,dz)||1; k.kx=dx/d*4; k.kz=dz/d*4; k.flash=1; k.lunge=0; k.hiss=0;
+  SFX.hit(); burst(sparks,k.x,k.y+0.5,k.z,6,1.6,2.5);
+  if(k.stunCool>0){ k.recover=Math.max(k.recover,0.3); return; } // flinches, but can't be stun-locked
+  k.stun=KOMODO.stun; k.stunCool=KOMODO.stun+KOMODO.stunCool;
+  if(once('komodoStun',30)) toast('Stunned! It won\'t stay down long. Run for the rope tree.',2.8,true);
+}
+function updateKomodo(dt){
+  const k=komodo;
+  k.flash=Math.max(0,k.flash-dt*4); k.skin.emissive.setRGB(k.flash,k.flash*0.9,k.flash*0.7);
+  if(state!=='play'){ k.sp=0; placeKomodo(dt); return; }
+  if(!k.awake&&squirrelUpInGrove()){ k.awake=true; SFX.hiss(); if(once('komodoWake',999)) toast('Something big stirs at the foot of the treasure tree. Best not fall.',3.4,true); }
+  k.lungeCool=Math.max(0,k.lungeCool-dt); k.stunCool=Math.max(0,k.stunCool-dt); k.biteCool=Math.max(0,k.biteCool-dt);
+  const floor=!P.platform&&inGrove(P.x,P.z)&&(P.mode==='ground'||(k.chasing&&P.mode==='air'&&P.y-terrainY(P.x,P.z)<1.6));
+  if(k.awake&&floor&&!k.chasing){ k.chasing=true; k.grace=KOMODO.grace; SFX.hiss(); if(once('komodoChase',999)) toast('The Komodo dragon! Outrun it to the rope tree, or swipe it with F.',3.6,true,true); }
+  else if(k.chasing&&!floor){ k.chasing=false; k.lunge=0; k.hiss=0; SFX.hiss(); }
+  const dx=P.x-k.x, dz=P.z-k.z, d=Math.hypot(dx,dz);
+  let sp=0, turn=KOMODO.turnProwl, tx=komodoHome.x, tz=komodoHome.z;
+  const slide=()=>{ k.x+=k.kx*dt; k.z+=k.kz*dt; k.kx*=1-5*dt; k.kz*=1-5*dt; };
+  if(k.stun>0){ k.stun-=dt; slide(); tx=k.x+Math.sin(k.h); tz=k.z+Math.cos(k.h); }
+  else if(k.recover>0){ k.recover-=dt; slide(); sp=0.8; tx=P.x; tz=P.z; }
+  else if(k.hiss>0){ k.hiss-=dt; turn=4; tx=P.x; tz=P.z; if(k.hiss<=0) k.lunge=KOMODO.lungeT; }
+  else if(k.lunge>0){ k.lunge-=dt; sp=KOMODO.lunge; turn=0.6; tx=P.x; tz=P.z; if(k.lunge<=0){ k.recover=KOMODO.recoverT; k.lungeCool=KOMODO.lungeCool; } }
+  else if(k.chasing){ k.grace-=dt; sp=KOMODO.chase; turn=KOMODO.turnChase; tx=P.x; tz=P.z;
+    if(k.grace<=0&&k.lungeCool<=0&&d<KOMODO.lungeRange&&Math.abs(angDiff(k.h,Math.atan2(dx,dz)))<0.6){ k.hiss=KOMODO.hissT; SFX.hiss(); } }
+  else if(k.awake&&inGrove(P.x,P.z)){ const o=d>0.01?KOMODO.offset/d:0; tx=P.x-dx*o; tz=P.z-dz*o; sp=Math.hypot(tx-k.x,tz-k.z)>0.4?KOMODO.prowl:0; }
+  else sp=Math.hypot(tx-k.x,tz-k.z)>0.3?KOMODO.prowl*0.6:0;
+  const da=angDiff(k.h,Math.atan2(tx-k.x,tz-k.z));
+  if(Math.hypot(tx-k.x,tz-k.z)>0.2) k.h+=clamp(da,-turn*dt,turn*dt);
+  if(k.lunge<=0) sp*=clamp(1-Math.abs(da)/2,0.3,1);
+  sp*=SK().komodo; k.x+=Math.sin(k.h)*sp*dt; k.z+=Math.cos(k.h)*sp*dt; k.sp=sp;
+  // stays on the grove floor, clear of the trunks
+  const cx=k.x-C.x, cz=k.z-C.z, cd=Math.hypot(cx,cz), RMAX=RH-1.2; if(cd>RMAX){ k.x=C.x+cx/cd*RMAX; k.z=C.z+cz/cd*RMAX; }
+  for(const t of TREES){ if(!t.grove) continue; const ox=k.x-t.x, oz=k.z-t.z, od=Math.hypot(ox,oz), R=t.r+0.55; if(od<R&&od>1e-4){ k.x=t.x+ox/od*R; k.z=t.z+oz/od*R; } }
+  k.y=terrainY(k.x,k.z);
+  if(k.chasing&&k.stun<=0&&k.grace<=0&&k.biteCool<=0&&P.pinchCool<=0){
+    const hx=k.x+Math.sin(k.h)*0.85, hz=k.z+Math.cos(k.h)*0.85;
+    if(Math.hypot(P.x-hx,P.z-hz)<0.7&&P.y-k.y<0.8){
+      k.biteCool=KOMODO.biteCool; k.lunge=0; k.hiss=0; k.recover=KOMODO.recoverT; k.lungeCool=Math.max(k.lungeCool,1.2);
+      const n=Math.hypot(dx,dz)||1; Object.assign(P,{mode:'air',vx:dx/n*6,vz:dz/n*6,vy:6.5,pinchCool:1.3,coyote:0,platform:null});
+      SFX.chomp(); hurt(SK().komodoBite,once('komodoBite',8)?'CHOMP! Get up a tree!':null); if(energy<=0) knockOut();
+    }
+  }
+  placeKomodo(dt);
+}
+function placeKomodo(dt){
+  const k=komodo, prev=k.gait;
+  k.gait+=dt*k.sp*3.2;
+  if(k.chasing&&Math.floor(k.gait/Math.PI)!==Math.floor(prev/Math.PI)) SFX.thud();
+  k.g.position.set(k.x,k.y,k.z); k.g.rotation.set(k.stun>0?Math.sin(tAll*18)*0.08:0,k.h,k.stun>0?0.25:0);
+  k.legs.forEach((l,i)=>{ l.rotation.y=Math.sin(k.gait+(i%2?Math.PI:0))*0.5; });
+  const busy=k.sp>0.1||k.hiss>0;
+  k.tail.forEach((s,i)=>{ s.rotation.y=Math.sin(tAll*(busy?6:1.4)-i*0.8)*(0.15+0.1*i); });
+  k.head.rotation.x=k.hiss>0?-0.4:(k.awake&&!k.chasing?-0.25:(k.awake?0:0.12));
+  k.tongue.scale.z=k.hiss>0||(k.awake&&Math.sin(tAll*3.1)>0.6)?1:0.01;
+}
+
+/* ================= hawk (Treasure Island branches) ================= */
+// Idle too long on a grove branch and a hawk makes one telegraphed pass: the only way to be knocked off a branch.
+const HAWK={circleR:2.5,circleOff:3.5,circleH:2.5,sink:0.8,hitR:0.8,knock:5.5,lift:3.5,energy:5,swipeR:2.2,diveT:1.3,leaveT:1.6};
+function buildHawk(){
+  const g=new THREE.Group(); scene.add(g); g.visible=false;
+  const brown=mat(0x6b4526), light=mat(0xd9c29a), beak=mat(0xe8b23d);
+  ball(1,brown,0,0,0,g).scale.set(0.16,0.14,0.36);
+  ball(1,light,0,0.05,0.3,g).scale.set(0.12,0.11,0.13);
+  const bk=mesh(new THREE.ConeGeometry(0.04,0.13,5),beak,0,0.03,0.46,g); bk.rotation.x=Math.PI/2;
+  [-1,1].forEach(s=>ball(0.025,MAT.black,0.07*s,0.09,0.37,g));
+  mesh(new THREE.BoxGeometry(0.26,0.03,0.3),brown,0,0,-0.42,g);
+  const wings=[-1,1].map(s=>{ const w=new THREE.Group(); w.position.set(0.12*s,0.04,0.02); g.add(w); w.userData.s=s;
+    mesh(new THREE.BoxGeometry(0.8,0.03,0.34),brown,0.4*s,0,0,w); mesh(new THREE.BoxGeometry(0.32,0.025,0.24),light,0.94*s,0,-0.04,w); return w; });
+  return {g,wings};
+}
+const hawkShadow=new THREE.Mesh(new THREE.CircleGeometry(0.55,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0,depthWrite:false}));
+hawkShadow.rotation.x=-Math.PI/2; hawkShadow.renderOrder=2; scene.add(hawkShadow);
+const hawk=Object.assign(buildHawk(),{phase:'none',idle:0,t:0,ang:0,x:0,y:0,z:0,dx:0,dy:0,dz:1,ax:0,az:0,af:0});
+const hawkLook=new THREE.Vector3();
+function resetHawk(){ Object.assign(hawk,{phase:'none',idle:0,t:0}); hawk.g.visible=false; hawkShadow.material.opacity=0; }
+function perchedInGrove(){ const p=P.platform; return P.mode==='ground'&&!!p&&p!==nestPlat&&!!p.tree&&p.tree.grove; }
+function hawkLeave(){ const h=hawk, n=Math.hypot(h.dx,h.dz)||1; h.dx/=n; h.dz/=n; h.dy=0.55; h.phase='leave'; h.t=0; }
+function hawkHit(){
+  const h=hawk, b=P.platform;
+  let kx=h.dx, kz=h.dz;
+  if(b&&b.kind==='box'){ const s=(-b.uz*h.dx+b.ux*h.dz)>=0?1:-1; kx=-b.uz*s+h.dx*0.3; kz=b.ux*s+h.dz*0.3; } // sideways, clean off the branch
+  const n=Math.hypot(kx,kz)||1;
+  Object.assign(P,{mode:'air',vx:kx/n*HAWK.knock,vz:kz/n*HAWK.knock,vy:HAWK.lift,platform:null,coyote:0,creak:0,assist:null,glide:GLIDE_MAX});
+  burst(feathers,P.x,P.y+0.4,P.z,14,2.2,2); SFX.hit();
+  hurt(HAWK.energy,once('hawkHit',8)?'WHUMP! The hawk knocks you clean off the branch.':null);
+  hawkLeave(); if(energy<=0) knockOut();
+}
+function bonkHawk(){
+  const h=hawk; if(h.phase!=='dive'||Math.hypot(h.x-P.x,h.y-P.y-0.35,h.z-P.z)>HAWK.swipeR) return;
+  burst(feathers,h.x,h.y,h.z,10,2,1.5); SFX.hit(); hawkLeave();
+  if(once('hawkBonk',20)) toast('Bonk! The hawk flaps off in a huff.',2.4,true);
+}
+function updateHawk(dt){
+  const h=hawk;
+  if(state==='play'){
+    if(h.phase==='none'){
+      if(perchedInGrove()&&Math.hypot(P.x-h.ax,P.z-h.az)<0.3&&Math.abs(angDiff(P.facing,h.af))<0.3) h.idle+=dt;
+      else { h.idle=0; h.ax=P.x; h.az=P.z; h.af=P.facing; }
+      if(h.idle>=SK().hawkIdle){ h.phase='circle'; h.t=0; h.ang=Math.random()*TAU; h.g.visible=true;
+        // circle on the far side of the squirrel from the camera, so the player sees it wind up
+        const vx=P.x-camera.position.x, vz=P.z-camera.position.z, vn=Math.hypot(vx,vz)||1; h.ox=vx/vn*HAWK.circleOff; h.oz=vz/vn*HAWK.circleOff; SFX.screech(); if(once('hawk',999)) toast('SKREEE! A hawk has spotted you. Keep moving!',3,true,true); }
+    } else if(h.phase==='circle'){
+      h.t+=dt; h.ang+=dt*1.9;
+      h.x=P.x+h.ox+Math.cos(h.ang)*HAWK.circleR; h.z=P.z+h.oz+Math.sin(h.ang)*HAWK.circleR; h.y=P.y+HAWK.circleH-h.t*HAWK.sink;
+      h.dx=-Math.sin(h.ang); h.dy=0; h.dz=Math.cos(h.ang);
+      if(h.t>=SK().hawkWarn){ const ex=P.x-h.x, ey=P.y+0.35-h.y, ez=P.z-h.z, L=Math.hypot(ex,ey,ez); h.dx=ex/L; h.dy=ey/L; h.dz=ez/L; h.phase='dive'; h.t=0; SFX.whoosh(); }
+    } else {
+      h.t+=dt; const sp=SK().hawkSpeed*(h.phase==='dive'?1:0.6);
+      h.x+=h.dx*sp*dt; h.y+=h.dy*sp*dt; h.z+=h.dz*sp*dt;
+      if(h.phase==='dive'){
+        if(P.mode!=='climb'&&Math.hypot(P.x-h.x,P.y+0.35-h.y,P.z-h.z)<HAWK.hitR) hawkHit();
+        else if(h.t>HAWK.diveT) hawkLeave();
+      } else if(h.t>HAWK.leaveT){ resetHawk(); h.ax=P.x; h.az=P.z; h.af=P.facing; }
+    }
+  }
+  if(!h.g.visible) return;
+  h.g.position.set(h.x,h.y,h.z); h.g.lookAt(hawkLook.set(h.x+h.dx,h.y+h.dy,h.z+h.dz));
+  const flap=h.phase==='dive'?0.7:Math.sin(tAll*(h.phase==='leave'?16:5))*0.45;
+  h.wings.forEach(w=>{ w.rotation.z=w.userData.s*flap; });
+  const pl=highestBelow(h.x,h.z,h.y), tg=Math.max(terrainY(h.x,h.z),0.12), gy=pl?Math.max(pl.top,tg):tg;
+  hawkShadow.position.set(h.x,gy+0.04,h.z); hawkShadow.material.opacity=clamp(0.4-(h.y-gy)*0.03,0.1,0.4);
+}
+
+/* ================= skill level ================= */
+const SIGN_HINT=new THREE.Color(1.12,1.04,0.86), SIGN_PLAIN=new THREE.Color(1,1,1);
+function tintSigns(){
+  const on=SK().hints;
+  platforms.forEach(p=>{ if(!p.halo) return; p.halo.visible=on; p.sprite.material.color.copy(on?SIGN_HINT:SIGN_PLAIN); });
+}
+function setSkill(s){
+  skill=s==='easy'?'easy':'normal';
+  try{ localStorage.setItem('psq.skill',skill); }catch(e){}
+  refreshSkill();
+}
+function refreshSkill(){
+  document.querySelectorAll('.seg[data-skill]').forEach(b=>{ const on=b.dataset.skill===skill; b.classList.toggle('on',on); b.setAttribute('aria-checked',String(on)); });
+  document.querySelectorAll('[data-skill-note]').forEach(n=>{ n.textContent=skill==='easy'?'Slower enemies and a glow on the right signs.':'The full challenge.'; });
+  $('skillTag').textContent=skill==='easy'?'Easy':'Normal';
+  tintSigns();
+}
+document.querySelectorAll('.seg[data-skill]').forEach(b=>b.addEventListener('click',()=>{ setSkill(b.dataset.skill); b.blur(); }));
+refreshSkill();
 
 /* ================= interactions ================= */
 function nearbyAction(){
@@ -1356,6 +1632,7 @@ function resolveHollow(h){
     refreshKit(item);
   } else { toast(junkPool.pop()||'Just an old acorn cap.',2.8,true); SFX.junk(); refreshKit(); }
 }
+const GAG_AT=1.6; // the Chestnut has finished rising by now
 function tryChest(){ state='winning'; winT=0; SFX.win(); refreshKit('nut'); setPrompt(''); }
 
 /* ================= objectives ================= */
@@ -1448,9 +1725,11 @@ function updateCamera(dt){
   const tgt=new THREE.Vector3(P.x,P.y+(P.mode==='boat'?1.0:0.55),P.z);
   camTarget.lerp(tgt,1-Math.exp(-10*dt));
   if(cam.mode==='follow'&&state!=='splash'&&state!=='ko') cam.yaw+=angDiff(cam.yaw,followYaw())*Math.min(1,(P.mode==='boat'?4:9)*dt);
-  let rot=0; if(keys.has('ArrowLeft')) rot+=1; if(keys.has('ArrowRight')) rot-=1;
-  if(rot){ if(cam.mode==='follow') setCamMode('free'); cam.yaw+=rot*2.2*dt; }
-  if(keys.has('ArrowUp')) cam.pitch=clamp(cam.pitch+dt,-0.15,1.25); if(keys.has('ArrowDown')) cam.pitch=clamp(cam.pitch-dt,-0.15,1.25);
+  if(shiftHeld()){
+    let rot=0; if(keys.has('ArrowLeft')) rot+=1; if(keys.has('ArrowRight')) rot-=1;
+    if(rot){ if(cam.mode==='follow') setCamMode('free'); cam.yaw+=rot*2.2*dt; }
+    if(keys.has('ArrowUp')) cam.pitch=clamp(cam.pitch+dt,-0.15,1.25); if(keys.has('ArrowDown')) cam.pitch=clamp(cam.pitch-dt,-0.15,1.25);
+  }
   const dist=P.mode==='boat'?Math.max(cam.dist,8.5):cam.dist;
   let pitch=cam.pitch, clr=1;
   for(let i=0;i<0;i++){ const c=Math.cos(pitch); clr=trunkClear(Math.sin(cam.yaw)*c*dist,Math.sin(pitch)*dist,Math.cos(cam.yaw)*c*dist); if(clr>=1||dist*clr>3.2||pitch>1.2) break; pitch+=0.15; }
@@ -1489,7 +1768,7 @@ function updateOcclusion(){
 /* ================= main loop ================= */
 function update(dt){
   tAll+=dt;
-  if(state==='paused'||state==='map'){ jumpBuffer=0; actPressed=false; attackPressed=false; return; }
+  if(state==='paused'||state==='map'||state==='help'){ jumpBuffer=0; actPressed=false; attackPressed=false; return; }
   if(['play','searching','splash','ko'].includes(state)) elapsed+=dt;
   attackCool=Math.max(0,attackCool-dt);
   if(state==='play'){
@@ -1522,9 +1801,11 @@ function update(dt){
     if(winT>0.4){ prize.visible=true; const k=clamp((winT-0.4)/1.1,0,1); prize.position.y=0.2+k*0.85; prize.rotation.y+=dt*4; }
     chestGlow.intensity=2.2;
     if(winT>0.5&&winT-dt<=0.5) burst(sparks,chest.position.x,chest.position.y+0.7,chest.position.z,30,2.5,5);
-    if(winT>2.3){ state='win'; ui.hud.hidden=true; ui.touch.hidden=true; $('winTime').textContent=fmtTime(elapsed); $('winSplash').textContent=splashes; $('winNuts').textContent=nutsEaten; $('winCrabs').textContent=crabsBeaten; ui.win.hidden=false; setObjective(currentObjective()); }
+    if(winT>GAG_AT&&winT-dt<=GAG_AT){ $('gag').hidden=false; $('gag2').hidden=true; }
+    if(winT>GAG_AT+2&&winT-dt<=GAG_AT+2){ $('gag2').hidden=false; SFX.deez(); burst(sparks,chest.position.x,chest.position.y+1,chest.position.z,30,3,6); }
+    if(winT>GAG_AT+4.6){ $('gag').hidden=true; state='win'; ui.hud.hidden=true; ui.touch.hidden=true; $('winTime').textContent=fmtTime(elapsed); $('winSplash').textContent=splashes; $('winNuts').textContent=nutsEaten; $('winCrabs').textContent=crabsBeaten; ui.win.hidden=false; setObjective(currentObjective()); }
   }
-  updateCrabs(dt);
+  updateCrabs(dt); updateKomodo(dt); updateHawk(dt);
   jumpBuffer=Math.max(0,jumpBuffer-dt); actPressed=false; attackPressed=false;
   ui.time.textContent=fmtTime(elapsed);
   animateRig(dt); animateWorld(dt); updateParticles(dt); updateToast(dt);
@@ -1540,13 +1821,13 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(0.05,(now-l
 
 /* ================= boot + hot-reload state ================= */
 resetGame();
-if(saved&&saved.v===3&&saved.state==='play'){
+if(saved&&saved.v===4&&saved.state==='play'){
   startGame();
   gear=saved.gear||{}; ITEMS.forEach(g=>{ if(gear[g]) equip(g,false); });
   (saved.searched||[]).forEach((s,i)=>{ if(hollows[i]&&s){ hollows[i].searched=true; hollows[i].glint.visible=false; } });
   splashes=saved.splashes||0; elapsed=saved.elapsed||0; visitedTI=!!saved.visited; energy=saved.energy==null?100:saved.energy; nutsEaten=saved.nuts||0;
   if(saved.gateOpen){ gateOpen=true; gateT=1; gateLeaves.forEach(l=>l.g.rotation.y=-l.side*1.7); }
-  if(saved.seq){ seq=saved.seq; ['S','A','B','Cc'].forEach(id=>TREE[id].branches.filter(b=>b.sprite).forEach((b,j)=>{ const key=(saved.syms&&saved.syms[id]&&saved.syms[id][j])||b.sym; b.sym=key; b.sprite.material.map=symTex[key]; b.sprite.material.needsUpdate=true; })); buildMap(); }
+  if(saved.seq){ seq=saved.seq; SIGNED_TREES.forEach(id=>TREE[id].branches.filter(b=>b.sprite).forEach((b,j)=>{ const key=(saved.syms&&saved.syms[id]&&saved.syms[id][j])||b.sym; if(SYMS[key]) paintSym(b,key); })); buildMap(); }
   (saved.deadCrabs||[]).forEach((d,i)=>{ if(d&&crabs[i]){ crabs[i].dead=true; crabs[i].g.visible=false; } }); guardsLeft=crabs.filter(c=>!c.dead).length; crabsBeaten=crabs.length-guardsLeft; if(guardsLeft===0){ barLogs.forEach(l=>l.visible=false); barT=2; }
   if(saved.boat) Object.assign(boat,saved.boat);
   if(saved.P){ Object.assign(P,saved.P,{vx:0,vy:0,vz:0,platform:null}); if(P.mode!=='boat') P.mode='air'; }
@@ -1554,7 +1835,7 @@ if(saved&&saved.v===3&&saved.state==='play'){
   if(saved.tiLanding) tiLanding=saved.tiLanding;
   toastQ.length=0; refreshKit(); refreshStats(); refreshEnergy(); setCamMode('follow');
 }
-if(hot&&hot.snapshot) hot.snapshot(()=>({v:3,state:['play','searching','splash','paused','map','ko'].includes(state)?'play':'title',gear:Object.assign({},gear),searched:hollows.map(h=>h.searched),splashes,elapsed,visited:visitedTI,energy,nuts:nutsEaten,gateOpen,seq,syms:{S:TREE.S.branches.filter(b=>b.sprite).map(b=>b.sym),A:TREE.A.branches.filter(b=>b.sprite).map(b=>b.sym),B:TREE.B.branches.filter(b=>b.sprite).map(b=>b.sym),Cc:TREE.Cc.branches.filter(b=>b.sprite).map(b=>b.sym)},deadCrabs:crabs.map(c=>c.dead),boat:{x:boat.x,z:boat.z,h:boat.h,speed:0},P:{x:P.x,y:P.y,z:P.z,facing:P.facing,mode:P.mode==='boat'?'boat':'air'},lastSafe,tiLanding}));
+if(hot&&hot.snapshot) hot.snapshot(()=>({v:4,state:['play','searching','splash','paused','map','ko','help'].includes(state)?'play':'title',gear:Object.assign({},gear),searched:hollows.map(h=>h.searched),splashes,elapsed,visited:visitedTI,energy,nuts:nutsEaten,gateOpen,seq,syms:Object.fromEntries(SIGNED_TREES.map(id=>[id,TREE[id].branches.filter(b=>b.sprite).map(b=>b.sym)])),deadCrabs:crabs.map(c=>c.dead),boat:{x:boat.x,z:boat.z,h:boat.h,speed:0},P:{x:P.x,y:P.y,z:P.z,facing:P.facing,mode:P.mode==='boat'?'boat':'air'},lastSafe,tiLanding}));
 
 // small test hook used by automated smoke tests
 window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),energy:Math.round(energy),boat:{x:+boat.x.toFixed(2),z:+boat.z.toFixed(2),h:+boat.h.toFixed(3),speed:+boat.speed.toFixed(2)},gear:Object.assign({},gear),gateOpen,visited:visitedTI,guardsLeft,prompt:promptShown,objective:objShown,cam:cam.mode,platform:P.platform?(P.platform.pier?'pier':P.platform===nestPlat?'nest':(P.platform.tree?P.platform.tree.id+'>'+P.platform.to+(P.platform.rotten?'(rotten)':''):'?')):null}),
@@ -1563,9 +1844,14 @@ window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z
   stepNR:(n)=>{ for(let i=0;i<n;i++) update(1/60); },
   key:(code,down)=>{ if(down){ keys.add(code); if(code==='Space') jumpBuffer=0.13; if(code==='KeyE') actPressed=true; if(code==='KeyF') attackPressed=true; if(code==='KeyC') setCamMode(cam.mode==='follow'?'free':'follow'); } else keys.delete(code); },
   giveAll:()=>{ ITEMS.forEach(g=>{ gear[g]=true; equip(g,false); }); refreshKit(); },
-  tree:(id)=>{ const t=TREE[id]; return {x:t.x,z:t.z,base:t.base,climbMin:t.climbMin,climbMax:t.climbMax,branches:t.branches.map(b=>({to:b.to,top:+b.top.toFixed(2),angle:+b.angle.toFixed(3),rotten:b.rotten,chain:b.chain,sym:b.sym,cx:b.cx,cz:b.cz,hl:b.hl,ux:b.ux,uz:b.uz,start:b.start}))}; },
+  tree:(id)=>{ const t=TREE[id]; return {x:t.x,z:t.z,base:t.base,slick:!!t.slick,climbMin:t.climbMin,climbMax:t.climbMax,branches:t.branches.map(b=>({to:b.to,top:+b.top.toFixed(2),angle:+b.angle.toFixed(3),rotten:b.rotten,chain:b.chain,sym:b.sym,cx:b.cx,cz:b.cz,hl:b.hl,ux:b.ux,uz:b.uz,start:b.start}))}; },
   face:(a)=>{ P.facing=a; cam.yaw=a+Math.PI; rig.root.rotation.y=a; },
-  seq:()=>seq.slice(), assets:()=>Object.assign({},assetState), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead}))};
+  help:()=>{ toggleHelp(); return state; }, reset:()=>startGame(), map:()=>{ if(state==='map') closeMap(); else openMap(); return state; }, seq:()=>seq.slice(), assets:()=>Object.assign({},assetState), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead})),
+  komodo:(x,z,h)=>{ const k=komodo; if(x!=null){ k.x=x; k.z=z; k.h=h||0; k.y=terrainY(x,z); } return {x:+k.x.toFixed(2),z:+k.z.toFixed(2),h:+k.h.toFixed(2),awake:k.awake,chasing:k.chasing,stun:+k.stun.toFixed(2),lunge:k.lunge>0,hiss:k.hiss>0}; },
+  skill:()=>({level:skill,crabChase:+(2.3*SK().crab).toFixed(2),komodo:{prowl:+(KOMODO.prowl*SK().komodo).toFixed(2),chase:+(KOMODO.chase*SK().komodo).toFixed(2),lunge:+(KOMODO.lunge*SK().komodo).toFixed(2),bite:SK().komodoBite},hawk:{idle:SK().hawkIdle,warn:SK().hawkWarn,speed:SK().hawkSpeed},
+    tinted:SIGNED_TREES.flatMap(id=>TREE[id].branches.filter(b=>b.sprite).map(b=>({tree:id,chain:b.chain,rotten:b.rotten,sym:b.sym,glow:!!(b.halo&&b.halo.visible)})))}),
+  setSkill:(s)=>{ setSkill(s); return skill; },
+  hawk:()=>({phase:hawk.phase,idle:+hawk.idle.toFixed(2),x:+hawk.x.toFixed(2),y:+hawk.y.toFixed(2),z:+hawk.z.toFixed(2)})};
 requestAnimationFrame(frame);
 }
 })();
