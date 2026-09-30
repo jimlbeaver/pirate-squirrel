@@ -90,4 +90,4 @@ blender -b -P tools/blender/twig_boat.py
 # Windows: & "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b -P tools\blender\twig_boat.py
 ```
 
-The asset plan and how to swap a GLB in for a stand-in are in `DESIGN.md`.
+The asset plan and how to swap a GLB in for a stand-in are in `DESIGN.md`. The asset inventory, budgets and style guide are in `ASSETS.md`.
