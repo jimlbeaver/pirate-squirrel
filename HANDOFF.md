@@ -1,5 +1,7 @@
 # Handoff: Pirate Squirrel browser game
 
+> **Note:** This is the original handoff from when the code moved into this repo. The game has since moved on to v2.3. See [DESIGN.md](DESIGN.md) for current rules, tuning and code map, and [ASSETS.md](ASSETS.md) for the art pipeline.
+
 You're picking up a browser game prototype, *Pirate Squirrel: Quest for the Chest Nuts*, a spin-off of Jim's animated short (OFWG Productions). Jim built v1 and v2 with Claude in a single session and has moved the code into this repo. Your job is to keep improving it without Jim present. Work in small, verifiable steps, and leave the game playable after every change.
 
 ## Read these first, in order
