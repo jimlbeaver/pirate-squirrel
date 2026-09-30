@@ -1,6 +1,6 @@
 # Design notes: v2
 
-Everything lives in `v2/index.html`: CSS and HUD markup at the top, then one script organized in commented sections (`/* ===== name ===== */`). The version shown on the title screen and in the tab comes from `VERSION` (currently `2.1`) near the top of `init`.
+Everything lives in `v2/index.html`: CSS and HUD markup at the top, then one script organized in commented sections (`/* ===== name ===== */`). The version shown on the title screen and in the tab comes from `VERSION` (currently `2.2`) near the top of `init`.
 
 ## How a run plays
 

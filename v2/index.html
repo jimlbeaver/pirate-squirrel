@@ -177,7 +177,7 @@ body:not(.touch) .touch-only{display:none}
 <div id="title" class="overlay">
   <div class="card">
     <div class="eyebrow">Sloppy Beaver Productions presents</div>
-    <h1>Quest for the Chest Nuts<small id="version">v2.1</small></h1>
+    <h1>Quest for the Chest Nuts<small id="version">v2.2</small></h1>
     <p class="lede">No pirate gear, no pirate ship. Search Home Isle's hollows for your kit and the treasure map, get past the Pirates Only gate, eat your way across the sea, beat the crab guards, and pick the right branches up to the Chestnut.</p>
     <div class="controls desk-only">
       <kbd>W A S D</kbd><span>W and S go forward and back, A and D turn. Arrow keys work too. Same on the boat.</span>
@@ -268,7 +268,7 @@ if (hot && hot.ready) hot.ready(init); else init((hot && hot.data) || {});
 function init(saved){
 saved = saved || {};
 const $ = id => document.getElementById(id);
-const VERSION='2.1';
+const VERSION='2.2';
 $('version').textContent='v'+VERSION; document.title='Quest for the Chest Nuts v'+VERSION;
 if (!window.THREE){ $('loadError').hidden = false; $('title').hidden = true; return; }
 
