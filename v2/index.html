@@ -270,7 +270,7 @@ if (hot && hot.ready) hot.ready(init); else init((hot && hot.data) || {});
 function init(saved){
 saved = saved || {};
 const $ = id => document.getElementById(id);
-const VERSION='2.2';
+const VERSION='2.3';
 $('version').textContent='v'+VERSION; document.title='Quest for the Chest Nuts v'+VERSION;
 if (!window.THREE){ $('loadError').hidden = false; $('title').hidden = true; return; }
 
