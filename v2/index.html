@@ -717,19 +717,29 @@ function buildCrab(scale){
   const g=new THREE.Group(); scene.add(g);
   const m=MAT.crab.clone();
   const inner=new THREE.Group(); inner.scale.setScalar(scale); g.add(inner);
-  const body=ball(0.34,m,0,0.24,0,inner); body.scale.set(0.42,0.2,0.32);
+  const standIn=new THREE.Group(); inner.add(standIn);
+  const body=ball(0.34,m,0,0.24,0,standIn); body.scale.set(0.42,0.2,0.32);
   const claws=[];
   [-1,1].forEach(s=>{
-    const arm=new THREE.Group(); arm.position.set(0.3*s,0.26,0.2); inner.add(arm);
+    const arm=new THREE.Group(); arm.position.set(0.3*s,0.26,0.2); standIn.add(arm);
     const c=ball(0.12,m,0.08*s,0.02,0.12,arm); c.scale.set(0.12,0.09,0.15);
     const pin=ball(0.06,m,0.12*s,0.02,0.24,arm); pin.scale.set(0.05,0.04,0.09);
     claws.push(arm);
-    for(let i=0;i<3;i++){ const leg=mesh(new THREE.BoxGeometry(0.28,0.04,0.04),m,0.36*s,0.13,-0.12+i*0.11,inner); leg.rotation.z=-0.55*s; }
-    mesh(new THREE.CylinderGeometry(0.018,0.018,0.14,5),m,0.08*s,0.38,0.2,inner);
-    ball(0.045,MAT.white,0.08*s,0.46,0.2,inner); ball(0.025,MAT.black,0.08*s,0.47,0.24,inner);
+    for(let i=0;i<3;i++){ const leg=mesh(new THREE.BoxGeometry(0.28,0.04,0.04),m,0.36*s,0.13,-0.12+i*0.11,standIn); leg.rotation.z=-0.55*s; }
+    mesh(new THREE.CylinderGeometry(0.018,0.018,0.14,5),m,0.08*s,0.38,0.2,standIn);
+    ball(0.045,MAT.white,0.08*s,0.46,0.2,standIn); ball(0.025,MAT.black,0.08*s,0.47,0.24,standIn);
   });
-  if(scale>1.2){ const hat=new THREE.Group(); hat.position.set(0,0.4,0); inner.add(hat); mesh(new THREE.CylinderGeometry(0.2,0.2,0.02,3),MAT.black,0,0,0,hat); mesh(new THREE.CylinderGeometry(0.07,0.09,0.09,10),MAT.black,0,0.05,0,hat); }
-  return {g,inner,claws,m};
+  const captain=scale>1.2;
+  if(captain){ const hat=new THREE.Group(); hat.position.set(0,0.4,0); standIn.add(hat); mesh(new THREE.CylinderGeometry(0.2,0.2,0.02,3),MAT.black,0,0,0,hat); mesh(new THREE.CylinderGeometry(0.07,0.09,0.09,10),MAT.black,0,0.05,0,hat); }
+  const c={g,inner,claws,mats:[m]};
+  // each crab gets its own copies of the GLB's materials so the hit flash stays per crab
+  swapIn(captain?'captain_pinch':'crab',inner,standIn,model=>{
+    const R=model.getObjectByName('ClawR'), L=model.getObjectByName('ClawL'); if(!R||!L) throw new Error('claw nodes missing');
+    const own=new Map();
+    model.traverse(o=>{ if(!o.isMesh) return; o.material=[].concat(o.material).map(q=>{ if(!own.has(q)) own.set(q,q.clone()); return own.get(q); }); if(o.material.length===1) o.material=o.material[0]; });
+    c.claws=[R,L]; c.mats=[...own.values()].filter(q=>q.emissive);
+  });
+  return c;
 }
 const CRAB_DEF=[[-4,-15.2,1,2],[4,-15.5,1,2],[-1,-17.3,1,2],[1.6,-13.7,1.45,3]];
 const crabs=CRAB_DEF.map(([dx,dz,s,hp])=>Object.assign(buildCrab(s),{hx:C.x+dx,hz:C.z+dz,scale:s,maxHp:hp,captain:s>1.2}));
@@ -1395,7 +1405,7 @@ function updateCrabs(dt){
   const playerHere=(P.mode==='ground'||P.mode==='air')&&!P.platform&&onTreasure(P.x,P.z)&&state==='play';
   crabs.forEach((c,i)=>{
     if(c.dead){ if(c.g.visible){ c.dieT+=dt; c.g.rotation.z=Math.min(Math.PI,c.dieT*8); c.g.position.y=c.y+Math.sin(Math.min(1,c.dieT*2)*Math.PI)*0.5; c.g.scale.setScalar(Math.max(0.01,1-Math.max(0,c.dieT-0.6)*2)); if(c.dieT>1.2) c.g.visible=false; } return; }
-    c.cool=Math.max(0,c.cool-dt); c.flash=Math.max(0,c.flash-dt*4); c.m.emissive.setRGB(c.flash,c.flash*0.9,c.flash*0.8);
+    c.cool=Math.max(0,c.cool-dt); c.flash=Math.max(0,c.flash-dt*4); c.mats.forEach(q=>q.emissive.setRGB(c.flash,c.flash*0.9,c.flash*0.8));
     let faceX=0, faceZ=1;
     if(c.stun>0){ c.stun-=dt; c.x+=c.kx*dt; c.z+=c.kz*dt; c.kx*=1-6*dt; c.kz*=1-6*dt; faceX=P.x-c.x; faceZ=P.z-c.z; }
     else {

@@ -4,6 +4,7 @@
 
 Matches `buildCrab()` in v2 (Treasure Island section), authored at the crab's unit scale; the game
 scales Captain Pinch's `inner` group by 1.45, so captain_pinch.glb is NOT pre-scaled.
+Characters are smooth-shaded (Jim, round 2); the world stays faceted.
 
   Crab (root, origin on the ground under the body centre, facing game +z)
     Body    carapace centred at y 0.24 (half-extents 0.42 x 0.2 x 0.32), beady eyes on stalks, 3 legs a side
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     cam = dict(target=tuple(G(-0.03, 0.27, 0.05)), cam_loc=tuple(G(1.1, 1.0, 1.65)), ground=(SAND, 0.0))
     for name, captain in (("crab", False), ("captain_pinch", True)):
         C.clear_objects()
-        root, kids = build("CaptainPinch" if captain else "Crab", captain=captain)
+        root, kids = build("CaptainPinch" if captain else "Crab", captain=captain, smooth=True)
         C.preview(name, **cam)
         path = C.export(name, [root] + kids)
         print(f"{name}: {C.tri_count(kids)} triangles -> {path}")
