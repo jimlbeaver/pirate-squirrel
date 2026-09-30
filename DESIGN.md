@@ -86,7 +86,7 @@ Balance hasn't been play-tested by hand yet. The voyage energy budget is the fir
 
 ## Next steps
 
-- **Assets.** Replace the primitive stand-ins with GLBs made in Blender. Done: the twig boat (`tools/blender/twig_boat.py`, oak-leaf sail, pinecone masthead). Next: crab and Captain Pinch, then chest and chestnut, the tree kit (trunk, branch, canopy, moss, rope, sign plaque), dock and gate, the Komodo dragon and the hawk, then the hero squirrel. For the squirrel, the plan is an image-to-3D draft from `refs/`, cleaned up and cut down for the web, rigged, with gear pieces as separate meshes.
+- **Assets.** Replace the primitive stand-ins with GLBs made in Blender. Done: the twig boat (`tools/blender/twig_boat.py`, oak-leaf sail, pinecone figurehead, crow's nest). Next: crab and Captain Pinch, then chest and chestnut, the tree kit (trunk, branch, canopy, moss, rope, sign plaque), dock and gate, the Komodo dragon and the hawk, then the hero squirrel. For the squirrel, the plan is an image-to-3D draft from `refs/`, cleaned up and cut down for the web, rigged, with gear pieces as separate meshes.
   - To swap an asset in: build the stand-in into its own group, then call `swapIn('<name>', parent, standInGroup)`. The GLB must share the stand-in's origin, size and facing (+z forward in game, -Y in Blender).
   - `GLTFLoader` r128 comes from jsdelivr with a fallback to `vendor/GLTFLoader.r128.js`. GLBs only load over HTTP; opened from `file://` the game quietly keeps the stand-ins.
   - Asset colours are authored as the game's hex values; the loader converts glTF's linear colours back so they match (the page has no colour management).
