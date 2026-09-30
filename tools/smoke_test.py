@@ -173,6 +173,9 @@ async def main():
             await E(f"window.__psq.tp({c['x']+0.9},2,{c['z']},'air')"); await step(20)
             await press("KeyF"); await step(40)
         i = await info(); show("crabs beaten", i)
+        drops = await E("window.__psq.drops()")
+        print(f"{'crab drops':<28} {drops}")
+        assert sorted(d["type"] for d in drops) == ["acorn", "acorn", "acorn", "walnut"], "three acorns and Captain Pinch's walnut"
 
         # 5. puzzle: leap from each correct branch to the next tree
         chain = ["S", "A", "B", "Cc", "T"]
