@@ -769,10 +769,10 @@ function boatDeckY(){ return boat.bob+0.2; }
 
 /* ================= squirrel ================= */
 function buildSquirrel(){
-  const root=new THREE.Group(), model=new THREE.Group(); root.add(model); scene.add(root);
-  const body=ball(1,MAT.fur,0,0.3,0,model); body.scale.set(0.22,0.275,0.2);
-  const belly=ball(1,MAT.cream,0,0.28,0.09,model); belly.scale.set(0.153,0.204,0.11);
-  const head=new THREE.Group(); head.position.set(0,0.62,0.04); model.add(head);
+  const root=new THREE.Group(), model=new THREE.Group(), std=new THREE.Group(); root.add(model); model.add(std); scene.add(root);
+  const body=ball(1,MAT.fur,0,0.3,0,std); body.scale.set(0.22,0.275,0.2);
+  const belly=ball(1,MAT.cream,0,0.28,0.09,std); belly.scale.set(0.153,0.204,0.11);
+  const head=new THREE.Group(); head.position.set(0,0.62,0.04); std.add(head);
   ball(0.17,MAT.fur,0,0,0,head);
   const muz=ball(1,MAT.cream,0,-0.045,0.115,head); muz.scale.set(0.09,0.075,0.08);
   ball(0.026,MAT.nose,0,-0.025,0.195,head);
@@ -780,14 +780,14 @@ function buildSquirrel(){
   const ears=new THREE.Group(); head.add(ears);
   [-1,1].forEach(s=>{ const e=mesh(new THREE.ConeGeometry(0.052,0.14,8),MAT.fur,0.085*s,0.16,-0.01,ears); e.rotation.z=-0.25*s; });
   const arms=[];
-  [-1,1].forEach(s=>{ const a=ball(1,MAT.fur,0.16*s,0.35,0.1,model); a.scale.set(0.05,0.085,0.05); a.rotation.x=-0.5; arms.push(a);
-    const f=ball(1,MAT.fur,0.09*s,0.03,0.06,model); f.scale.set(0.06,0.03,0.1); });
-  const tail=new THREE.Group(); tail.position.set(0,0.2,-0.17); model.add(tail);
+  [-1,1].forEach(s=>{ const a=ball(1,MAT.fur,0.16*s,0.35,0.1,std); a.scale.set(0.05,0.085,0.05); a.rotation.x=-0.5; arms.push(a);
+    const f=ball(1,MAT.fur,0.09*s,0.03,0.06,std); f.scale.set(0.06,0.03,0.1); });
+  const tail=new THREE.Group(); tail.position.set(0,0.2,-0.17); std.add(tail);
   [[0,0.02,-0.06,0.11,MAT.fur],[0,0.2,-0.2,0.15,MAT.furLight],[0,0.42,-0.28,0.17,MAT.furLight],[0,0.62,-0.27,0.15,MAT.furLight],[0,0.75,-0.18,0.11,MAT.tailTip]].forEach(([x,y,z,r,m])=>ball(r,m,x,y,z,tail));
   const patch=new THREE.Group(); head.add(patch);
   { const pg=new THREE.CylinderGeometry(0.058,0.058,0.02,18); pg.rotateX(Math.PI/2); const p=mesh(pg,MAT.black,0.072,0.036,0.155,patch); p.rotation.y=0.4;
     const strap=mesh(new THREE.TorusGeometry(0.173,0.008,6,40),MAT.black,0,0.04,0,patch); strap.rotation.set(Math.PI/2+0.18,0.1,0); }
-  const coat=new THREE.Group(); model.add(coat);
+  const coat=new THREE.Group(); std.add(coat);
   { mesh(new THREE.CylinderGeometry(0.2,0.25,0.36,18,1,true,0.55,TAU-1.1),MAT.coat,0,0.3,0,coat);
     const belt=mesh(new THREE.TorusGeometry(0.228,0.024,6,28),MAT.leather,0,0.25,0,coat); belt.rotation.x=Math.PI/2; belt.scale.set(1,0.92,1);
     mesh(new THREE.BoxGeometry(0.075,0.065,0.02),MAT.gold,0,0.25,0.212,coat);
@@ -799,21 +799,56 @@ function buildSquirrel(){
     mesh(new THREE.CylinderGeometry(0.143,0.143,0.035,12),MAT.red,0,0.035,0,hat);
     ball(0.032,MAT.white,0,0.09,0.122,hat); }
   // rolled map tucked under the arm
-  const map=new THREE.Group(); model.add(map);
+  const map=new THREE.Group(); std.add(map);
   { const r=mesh(new THREE.CylinderGeometry(0.035,0.035,0.26,10),MAT.paper,-0.2,0.3,-0.02,map); r.rotation.z=0.3; mesh(new THREE.TorusGeometry(0.037,0.008,5,12),MAT.red,-0.2,0.3,-0.02,map).rotation.y=Math.PI/2; }
   patch.visible=coat.visible=hat.visible=map.visible=false;
   root.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
-  return {root,model,head,ears,arms,tail,patch,coat,hat,map,pop:{}};
+  return {root,model,std,glb:null,head,ears,arms,tail,patch,coat,hat,map,pop:{}};
 }
 const rig=buildSquirrel();
+// the GLB's gear nodes per kit item; the stand-in's own gear groups stay the source of truth for what's worn
+const GEAR_NODES={patch:['Patch'],coat:['Coat','CoatSleeveL','CoatSleeveR'],hat:['Hat'],map:['Map']};
+const SQ_CLIPS=['Idle','Run','Jump','Glide','Climb','Swipe','Celebrate'];
+const anim={mixer:null,acts:{},cur:null,px:0,py:0,pz:0,climbSp:0};
+function gearParts(item){ return [rig[item]].concat(rig.glb?rig.glb.gear[item]:[]); }
+function syncGlbGear(){ if(!rig.glb) return; for(const k in GEAR_NODES) rig.glb.gear[k].forEach(o=>o.visible=rig[k].visible); rig.glb.ears.visible=rig.ears.visible; }
+swapIn('squirrel',rig.model,rig.std,(model,gltf)=>{
+  const node=n=>{ const o=model.getObjectByName(n); if(!o) throw new Error('node '+n+' missing'); return o; };
+  const gear={}; for(const k in GEAR_NODES) gear[k]=GEAR_NODES[k].map(node);
+  const mixer=new THREE.AnimationMixer(model), acts={};
+  SQ_CLIPS.forEach(n=>{ const clip=THREE.AnimationClip.findByName(gltf.animations,n); if(clip) acts[n]=mixer.clipAction(clip); });
+  if(!acts.Idle||!acts.Run) throw new Error('Idle/Run clips missing');
+  ['Jump','Swipe'].forEach(n=>{ if(acts[n]){ acts[n].setLoop(THREE.LoopOnce); acts[n].clampWhenFinished=true; } });
+  rig.glb={gear,ears:node('Ears')}; Object.assign(anim,{mixer,acts,cur:null});
+  syncGlbGear();
+});
 function equip(item,animate){
   if(!rig[item]) return;
   rig[item].visible=true;
   if(item==='hat') rig.ears.visible=false;
   if(item==='coat') rig.arms.forEach(a=>a.material=MAT.coat);
+  syncGlbGear();
   if(animate) rig.pop[item]=0;
 }
-function unequipAll(){ ['patch','coat','hat','map'].forEach(i=>{ rig[i].visible=false; rig[i].scale.setScalar(1); }); rig.ears.visible=true; rig.arms.forEach(a=>a.material=MAT.fur); rig.pop={}; }
+function unequipAll(){ ['patch','coat','hat','map'].forEach(i=>{ rig[i].visible=false; gearParts(i).forEach(o=>o.scale.setScalar(1)); }); rig.ears.visible=true; rig.arms.forEach(a=>a.material=MAT.fur); rig.pop={}; syncGlbGear(); }
+// which clip the GLB squirrel should be playing; the stand-in keeps its code-driven wobble
+function squirrelClip(hs){
+  if(state==='winning'||state==='win') return 'Celebrate';
+  if(P.attackT>0) return 'Swipe';
+  if(P.mode==='climb') return 'Climb';
+  if(P.mode==='air') return P.gliding?'Glide':'Jump';
+  if(P.mode==='ground'&&state==='play'&&hs>0.6) return 'Run';
+  return 'Idle';
+}
+function animateGlb(dt,hs){
+  const cs=Math.hypot(P.x-anim.px,P.y-anim.py,P.z-anim.pz)/Math.max(dt,1e-4); anim.px=P.x; anim.py=P.y; anim.pz=P.z;
+  anim.climbSp+=((P.mode==='climb'?Math.min(cs,4):0)-anim.climbSp)*Math.min(1,10*dt);
+  let want=squirrelClip(hs); if(!anim.acts[want]) want=P.mode==='ground'&&hs>0.6?'Run':'Idle';
+  const a=anim.acts[want];
+  if(want!==anim.cur){ const prev=anim.acts[anim.cur]; a.reset().play(); if(prev) prev.crossFadeTo(a,want==='Swipe'?0.06:0.15,false); anim.cur=want; }
+  a.timeScale=want==='Run'?Math.max(0.3,hs*3.2/(4*Math.PI)):want==='Climb'?anim.climbSp/1.4:1;
+  anim.mixer.update(dt);
+}
 
 /* ================= scenery ================= */
 [[-150,40,34,14],[-120,-60,30,12],[-120,220,40,18],[110,260,34,15],[150,110,30,12],[160,-20,26,10],[-170,140,30,12]].forEach(([x,z,s,h],i)=>{
@@ -1696,7 +1731,8 @@ function animateRig(dt){
   else rig.root.rotation.set(0,rig.root.rotation.y+angDiff(rig.root.rotation.y,P.facing)*Math.min(1,16*dt),0);
   const hs=Math.hypot(P.vx,P.vz);
   if(P.mode==='ground') walkPhase+=dt*hs*3.2;
-  rig.model.position.y=P.mode==='ground'?Math.abs(Math.sin(walkPhase))*0.06*Math.min(1,hs/3):0;
+  rig.model.position.y=P.mode==='ground'&&!anim.mixer?Math.abs(Math.sin(walkPhase))*0.06*Math.min(1,hs/3):0;
+  if(anim.mixer) animateGlb(dt,hs);
   squash=Math.max(0,squash-dt*5);
   let tilt=0; if(P.mode==='climb') tilt=0.28; else if(P.gliding) tilt=0.5; else if(P.mode==='ground') tilt=Math.min(0.18,hs*0.03);
   if(state==='searching') tilt=0.35+Math.sin(tAll*28)*0.06;
@@ -1707,7 +1743,7 @@ function animateRig(dt){
   rig.tail.rotation.x=-0.08+Math.sin(tAll*2.2)*0.06+(P.mode==='air'?0.4:0)+(P.gliding?0.3:0)+(P.attackT>0?-0.9:0);
   rig.tail.rotation.z=Math.sin(walkPhase)*0.14;
   rig.coat.scale.x+=((P.gliding?1.28:1)-rig.coat.scale.x)*Math.min(1,8*dt); rig.coat.scale.z=rig.coat.scale.x;
-  for(const k in rig.pop){ rig.pop[k]+=dt; const s=easeBack(rig.pop[k]/0.45); rig[k].scale.setScalar(Math.max(0.01,s)); if(rig.pop[k]>0.5){ rig[k].scale.setScalar(1); delete rig.pop[k]; } }
+  for(const k in rig.pop){ rig.pop[k]+=dt; const s=rig.pop[k]>0.5?1:Math.max(0.01,easeBack(rig.pop[k]/0.45)); gearParts(k).forEach(o=>o.scale.setScalar(s)); if(rig.pop[k]>0.5) delete rig.pop[k]; }
 }
 function animateWorld(dt){
   hollows.forEach((h,i)=>{ if(h.glint.visible){ h.glint.rotation.y+=dt*2.5; h.glint.position.y=0.02+Math.sin(tAll*3+i)*0.03; } });

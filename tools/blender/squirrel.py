@@ -8,8 +8,10 @@ plus rigid gear nodes parented to bones so `equip()` can toggle them by name:
   Ears (Head)  Patch (Head, over the LEFT eye = +x)  Hat (Head)
   Coat (Hips) + CoatSleeveL / CoatSleeveR (arm bones)  Map (Hips)
 Clips are in place (the game moves the squirrel): Idle (2 s loop), Run (0.5 s loop), Jump (0.67 s,
-play once and clamp). Renders: art/previews/squirrel.png, squirrel_run.png, squirrel_jump.png,
-squirrel_idle.png (contact sheets) and squirrel_run.mp4 / squirrel_jump.mp4.
+play once and clamp), Glide (1 s loop), Climb (0.5 s loop), Swipe (0.29 s, once), Celebrate (1 s loop).
+Smooth-shaded, like all the characters. Renders: art/previews/squirrel.png, squirrel_gamecam.png (follow
+camera), squirrel_run.png, squirrel_jump.png, squirrel_idle.png, squirrel_clips.png (contact sheets) and
+squirrel_run.mp4 / squirrel_jump.mp4.
 """
 import math
 import random
@@ -36,7 +38,8 @@ def M(key):
     return C.mat(*PAL[key])
 
 
-TAIL = [(0, 0.15, -0.16), (0, 0.27, -0.33), (0, 0.47, -0.42), (0, 0.69, -0.4), (0, 0.86, -0.3), (0, 0.95, -0.15)]
+# swept low and back so the follow camera sees the head, hat and coat over it; the tip curls away from the head
+TAIL = [(0, 0.15, -0.16), (0, 0.19, -0.38), (0, 0.3, -0.58), (0, 0.46, -0.7), (0, 0.6, -0.74), (0, 0.69, -0.68)]
 BONES = [  # name, head, tail (game coords), parent
     ("Hips", (0, 0.17, 0), (0, 0.32, 0), None),
     ("Spine", (0, 0.32, 0), (0, 0.46, 0.01), "Hips"),
@@ -131,16 +134,17 @@ def build_body():
 
     # the bushy tail: overlapping lumpy puffs, two per tail bone, lighter toward the tip
     random.seed(5)
-    radii = [0.09, 0.13, 0.155, 0.16, 0.14]
+    radii = [0.09, 0.12, 0.14, 0.145, 0.125]
     for i in range(5):
         a, b = Vector(TAIL[i]), Vector(TAIL[i + 1])
         for j, f in enumerate((0.3, 0.8)):
             c = a.lerp(b, f)
             r = radii[i] * (0.9 + 0.1 * j)
             key = "fur" if i == 0 else "tail_tip" if i == 4 and j == 1 else "fur_light"
-            puff = ellipsoid("Puff", c, (r * 0.8, r, r), M(key), ico=1, jitter=0.12)
+            puff = ellipsoid("Puff", c, (r * 0.8, r, r), M(key), ico=2, jitter=0.07)
             parts.append(skin(puff, rigid(f"Tail{i + 1}")))
-    parts.append(skin(ellipsoid("Curl", (0, 0.98, -0.07), (0.07, 0.08, 0.09), M("tail_tip"), ico=1, jitter=0.12), rigid("Tail5")))
+    tip = Vector(TAIL[-1]) + Vector((0, 0.03, -0.05))
+    parts.append(skin(ellipsoid("Curl", tip, (0.07, 0.08, 0.09), M("tail_tip"), ico=2, jitter=0.07), rigid("Tail5")))
     return C.join("SquirrelBody", parts)
 
 
@@ -276,6 +280,8 @@ def build_squirrel(name="Squirrel", gear=True, smooth=False):
         extras += [(build_patch(), "Head"), (build_hat(), "Head"), (build_coat(), "Hips"),
                    (build_sleeve(1, "L"), "ArmL"), (build_sleeve(-1, "R"), "ArmR"), (build_map(), "Hips")]
     for obj, bone in extras:
+        vs = [v.co for v in obj.data.vertices]
+        C.set_origin(obj, [(min(v[i] for v in vs) + max(v[i] for v in vs)) / 2 for i in range(3)])   # the game pops gear in about here
         attach(obj, rig, bone)
     for o in [body] + [e for e, _ in extras]:
         for p in o.data.polygons:
@@ -350,10 +356,56 @@ JUMP_KEYS = {
          "FootL": (-0.1, 0, 0), "FootR": (-0.1, 0, 0), "ArmL": (-0.9, 0, 0.9), "ArmR": (-0.9, 0, -0.9),
          "Tail1": (-0.4, 0, 0), "Tail2": (0.05, 0, 0), "Tail3": (0.05, 0, 0)},
 }
+def glide(f):
+    """Spread-eagle, limbs out like a flying squirrel's; the game tilts the whole model forward on top."""
+    ph = 2 * math.pi * f / 24
+    w = 0.08 * math.sin(ph)
+    spec = {"Head": (-0.35, 0, 0), "ArmL": (-0.4, 0, 1.25 + w), "ArmR": (-0.4, 0, -1.25 - w),
+            "ThighL": (0.5, 0, 0.55 + w), "ThighR": (0.5, 0, -0.55 - w), "ShinL": (0.2, 0, 0), "ShinR": (0.2, 0, 0),
+            "FootL": (0.3, 0, 0), "FootR": (0.3, 0, 0)}
+    for i in range(5):
+        spec[f"Tail{i + 1}"] = ((-0.95 if i == 0 else 0.0) + 0.1 * math.sin(ph - 0.8 * i), 0, 0.06 * math.sin(ph - 0.6 * i))
+    return spec
+
+
+def climb(f):
+    """Facing the trunk: diagonal pairs reach and push (left arm with right leg)."""
+    ph = 2 * math.pi * f / 12
+    spec = {"Head": (-0.25, 0, 0)}
+    for side, s, off in (("L", 1, 0.0), ("R", -1, math.pi)):
+        q = math.sin(ph + off)
+        spec["Arm" + side] = (-2.0 - 0.5 * q, 0, 0.35 * s)
+        spec["Thigh" + side] = (-0.9 - 0.45 * q, 0, 0.35 * s)
+        spec["Shin" + side] = (1.0 + 0.4 * q, 0, 0)
+    for i in range(5):
+        spec[f"Tail{i + 1}"] = ((-0.5 if i == 0 else 0.0) + 0.12 * math.sin(ph - 0.9 * i), 0, 0)
+    return spec
+
+
+WHIP = {"lift": -0.03, "Hips": (0.15, 0, 0), "ArmL": (-0.3, 0, 1.0), "ArmR": (-0.3, 0, -1.0),
+        "Tail1": (-1.3, 0, 0), "Tail2": (-0.2, 0, 0), "Tail3": (-0.1, 0, 0)}
+SWIPE_KEYS = {0: {}, 2: WHIP, 5: WHIP, 7: {}}   # 0.29 s, under the game's 0.3 s spin
+
+
+def celebrate(f):
+    ph = 2 * math.pi * f / 24
+    spec = {"lift": 0.07 * abs(math.sin(ph)), "Head": (-0.15, 0, 0.15 * math.sin(ph)),
+            "ArmL": (-2.6, 0, 0.5 + 0.3 * math.sin(2 * ph)), "ArmR": (-2.6, 0, -0.5 - 0.3 * math.sin(2 * ph + 1)),
+            "ThighL": (-0.3 * abs(math.sin(ph)), 0, 0), "ThighR": (-0.3 * abs(math.sin(ph)), 0, 0),
+            "ShinL": (0.4 * abs(math.sin(ph)), 0, 0), "ShinR": (0.4 * abs(math.sin(ph)), 0, 0)}
+    for i in range(5):
+        spec[f"Tail{i + 1}"] = (0.0, 0, 0.25 * math.sin(2 * ph - 0.5 * i))
+    return spec
+
+
 CLIPS = {  # name: (key frames, pose function, loops)
     "Idle": (range(0, 49, 4), idle, True),
     "Run": (range(0, 13), run, True),
     "Jump": (sorted(JUMP_KEYS), JUMP_KEYS.get, False),
+    "Glide": (range(0, 25, 3), glide, True),
+    "Climb": (range(0, 13), climb, True),
+    "Swipe": (sorted(SWIPE_KEYS), SWIPE_KEYS.get, False),
+    "Celebrate": (range(0, 25, 2), celebrate, True),
 }
 
 
@@ -377,6 +429,21 @@ def jump_arc(f):
     from frame 5, apex around frame 11, down again at frame 18."""
     t = (f - 5) / 13
     return 0.62 * (1 - (2 * t - 1) ** 2) if 0 < t < 1 else 0.0
+
+
+def gamecam(extras, name):
+    """The follow camera's view (6.2 behind, pitch 0.32, 58 deg vertical FOV) in the pirate look, plus a crop taken
+    from the same spot with a narrow lens, so the squirrel is big enough to judge. Returns [full, crop]."""
+    pitch, dist, eye = 0.32, 6.2, 0.55
+    loc = tuple(G(0, eye + dist * math.sin(pitch), -dist * math.cos(pitch)))
+    dress(extras, "pirate")
+    files = []
+    for tag, fov, res in (("_full", 58, (1280, 720)), ("", 12, (720, 720))):
+        st = C.stage(target=tuple(G(0, eye, 0)), cam_loc=loc, res=res, fov_y=fov, ground=(0xe8d3a1, 0.0), ground_size=60)
+        files.append(C.PREVIEWS / f"{name}{tag}.png")
+        C.render(files[-1], samples=32)
+        C.unstage(st)
+    return files
 
 
 def dress(extras, look):
@@ -438,7 +505,7 @@ def movie(rig, extras, act, name, shots, cam, size=480):
 if __name__ == "__main__":
     C.reset(seed=3)
     bpy.context.scene.render.fps = FPS
-    rig, body, extras = build_squirrel()
+    rig, body, extras = build_squirrel(smooth=True)
     acts = add_clips(rig)
     path = C.export("squirrel", [rig, body] + extras)
     tris = C.tri_count([body] + extras)
@@ -453,6 +520,7 @@ if __name__ == "__main__":
         C.render(C.PREVIEWS / "frames" / f"squirrel_{look}.png")
     C.unstage(st)
     C.contact_sheet(C.PREVIEWS / "squirrel.png", [C.PREVIEWS / "frames" / "squirrel_plain.png", C.PREVIEWS / "frames" / "squirrel_pirate.png"], 2)
+    gamecam(extras, "squirrel_gamecam")
     if "--quick" in sys.argv:     # blender -b -P squirrel.py -- --quick: model, export and still only
         sys.exit(0)
 
@@ -461,6 +529,11 @@ if __name__ == "__main__":
     strip(rig, extras, acts["Run"], "squirrel_run", [(f, 0.0) for f in range(0, 12, 2)], side)
     strip(rig, extras, acts["Jump"], "squirrel_jump", [(f, jump_arc(f)) for f in range(0, 17, 2)], high)
     strip(rig, extras, acts["Idle"], "squirrel_idle", [(f, 0.0) for f in range(0, 48, 12)], side)
+    sheet = []
+    for name, frames in (("Glide", (0, 6, 12, 18)), ("Climb", (0, 3, 6, 9)), ("Swipe", (0, 2, 5, 7)), ("Celebrate", (0, 6, 12, 18))):
+        lift = 0.4 if name == "Glide" else 0.0
+        sheet += shoot(rig, extras, acts[name], f"squirrel_{name.lower()}", [(f, lift) for f in frames], high, 400, 24)
+    C.contact_sheet(C.PREVIEWS / "squirrel_clips.png", sheet, 4)
     movie(rig, extras, acts["Run"], "squirrel_run", [(f, 0.0) for f in range(12)] * 4, side)
     landing = [(16, jump_arc(17)), (16, 0.0), (16, 0.0), (16, 0.0), (3, 0.0), (0, 0.0), (0, 0.0), (0, 0.0)]
     movie(rig, extras, acts["Jump"], "squirrel_jump", [(f, jump_arc(f)) for f in range(17)] + landing, high)
