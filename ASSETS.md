@@ -35,7 +35,7 @@ Blender scripts in `tools/blender/` build every asset, render a preview to `art/
 
 The other `MAT` values (deck `d8b17a`, plank `9b6c42`/`6d4a2c`, coat `7a3421`, leather `4a2c1a`, red `b3261e`, white `f3f0e6`, nut `7a4220`/`cfa46a`, the leaf set `d9872a e8b441 c0602a 9aa23f e39a37`, sand `e8d3a1`, water `2a8a93`) are fine too. A new colour is allowed only as one darker or lighter partner of an existing one (e.g. twig dark `684828`, crab shell dark `a33a20`, crab pale `f1b27a` = `tailTip`).
 
-**Triangle budgets.** Pieces placed many times (nuts, hedge bushes, tree kit pieces) 100–800 each. Props 500–3k. Characters 3–8k. Hero squirrel 8–12k including gear. The twig boat (7.3k tris, 554 KB) is the ceiling for a single prop. Flat shading splits vertices, so expect about 75 KB per 1k tris.
+**Triangle budgets.** Pieces placed many times (hedge bushes, tree kit pieces) 100–800 each. Sea nuts up to 1.5k each, since there are only 27 and the walnut's wrinkles need the geometry. Props 500–3k. Characters 3–8k. Hero squirrel 8–12k including gear. The twig boat (7.3k tris, 554 KB) is the ceiling for a single prop. Flat shading splits vertices, so expect about 75 KB per 1k tris.
 
 **Scale and orientation.** 1 Blender unit = 1 game unit (the squirrel is 0.9 tall). Blender is Z-up; the glTF exporter converts to game Y-up. Game forward (+z) is Blender -Y. The origin sits where the stand-in group's origin is, usually on the ground under the centre. Scripts write geometry in game coordinates via a `G(x, y, z)` helper, so numbers can be copied straight from the stand-in code.
 
