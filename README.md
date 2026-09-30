@@ -4,7 +4,7 @@ Browser game prototype spun off from the Sloppy Beaver Productions pirate squirr
 
 | Folder | What it is |
 |---|---|
-| `v2/` | **Current version (2.1).** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle with decoys, a Komodo dragon below and a hawk above, treasure chest). |
+| `v2/` | **Current version (2.2).** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle with decoys, a Komodo dragon below and a hawk above, treasure chest). |
 | `v1/` | First playable greybox, kept as a reference. |
 | `refs/` | Concept art: plain squirrel and full pirate gear. |
 | `vendor/` | Local copies of three.js r128 and its `GLTFLoader`, used automatically if the CDNs are unreachable. |
@@ -51,8 +51,8 @@ To host it as a playable link, turn on GitHub Pages for the repo (Settings → P
 | Space | Jump. Hold while falling to glide |
 | Walk into a trunk | Climb. W up, S down (S near a branch steps onto it), Space leaps off |
 | E | Search a hollow, open the gate, board the boat, go ashore, open the chest |
-| F | Tail-swipe. Landing on a crab or the Komodo dragon also hits it; a swipe can bonk a diving hawk |
-| C | Toggle follow cam / free cam. Drag or Shift + arrow keys look around, scroll zooms |
+| F or left click | Tail-swipe. Landing on a crab or the Komodo dragon also hits it; a swipe can bonk a diving hawk |
+| C | Toggle follow cam / free cam. Right-drag (or Ctrl + drag) or Shift + arrow keys look around, scroll zooms |
 | M | Treasure map (once found) |
 | H or ? | Help card with the controls |
 | Esc / P | Pause |

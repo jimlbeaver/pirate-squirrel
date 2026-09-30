@@ -101,6 +101,30 @@ async def main():
             if r["slick"]: assert r["ground"] == "." * 8 and r["fromBranch"] == "C", f"{tid}: slick tree should refuse from the ground and allow from its branch"
             else: assert r["ground"] == "C" * 8, f"{tid}: climbable tree refused a climb"
 
+        # 0b. mouse: a left click on the game view swipes, right-drag orbits without swiping, HUD clicks don't swipe
+        await page.wait_for_timeout(600)
+        vw = page.viewport_size; mx, my = vw["width"] // 2, vw["height"] // 2 + 60
+        n0 = await E("window.__psq.swipes()")
+        await page.mouse.click(mx, my); await page.wait_for_timeout(150)
+        n1 = await E("window.__psq.swipes()")
+        assert n1 == n0 + 1, "a left click on the game view should tail-swipe"
+        await page.wait_for_timeout(500)
+        yaw0 = (await E("window.__psq.cam()"))["yaw"]
+        await page.mouse.move(mx, my); await page.mouse.down(button="right")
+        await page.mouse.move(mx + 140, my - 20, steps=8); await page.mouse.up(button="right"); await page.wait_for_timeout(150)
+        c = await E("window.__psq.cam()")
+        print(f"{'mouse':<28} left click swipes {n0}->{n1}, right-drag yaw {yaw0}->{c['yaw']}, dragging after release {c['dragging']}")
+        assert abs(c["yaw"] - yaw0) > 0.2 and not c["dragging"], "right-drag should orbit the camera and stop on release"
+        await page.click("#mute"); await page.click("#mute"); await page.wait_for_timeout(150)
+        assert await E("window.__psq.swipes()") == n1, "right-drag and HUD clicks must not swipe"
+        # a drag whose release happens outside the window: the next move with no button held ends it
+        await page.mouse.move(mx, my); await page.mouse.down(button="right"); await page.mouse.move(mx + 30, my, steps=2)
+        assert (await E("window.__psq.cam()"))["dragging"]
+        await E(f"document.getElementById('c').dispatchEvent(new PointerEvent('pointermove',{{pointerType:'mouse',pointerId:1,buttons:0,clientX:{mx+40},clientY:{my},bubbles:true}}))")
+        assert not (await E("window.__psq.cam()"))["dragging"], "a move with no button held should end the drag"
+        await page.mouse.up(button="right")
+        if (await E("window.__psq.cam()"))["mode"] == "free": await press("KeyC")
+
         # 1. first hollow: walk to the trunk and search
         await key("KeyW", True); await step(30); await key("KeyW", False)
         await press("KeyE"); await step(60)
