@@ -1,14 +1,14 @@
 # Pirate Squirrel: Quest for the Chest Nuts
 
-Browser game prototype spun off from the OFWG Productions pirate squirrel short. Plain three.js, no build step. Each version is a single self-contained HTML file.
+Browser game prototype spun off from the Sloppy Beaver Productions pirate squirrel short. Plain three.js, no build step. Each version is a single self-contained HTML file.
 
 | Folder | What it is |
 |---|---|
-| `v2/` | **Current version.** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle, treasure chest). |
+| `v2/` | **Current version (2.3).** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle with decoys, a Komodo dragon below and a hawk above, treasure chest). Blender-built art for the squirrel and his gear, the boat, crabs, sea nuts, chest and Chestnut. |
 | `v1/` | First playable greybox, kept as a reference. |
 | `refs/` | Concept art: plain squirrel and full pirate gear. |
-| `vendor/` | Local copy of three.js r128, used automatically if the CDN is unreachable. |
-| `tools/` | Headless smoke test (Playwright) and a Blender asset-pipeline starter script. |
+| `vendor/` | Local copies of three.js r128 and its `GLTFLoader`, used automatically if the CDNs are unreachable. |
+| `tools/` | Headless smoke test and review screenshots (Playwright), and the Blender scripts that build every asset. |
 | `PLAN.md` | Original game plan. |
 | `DESIGN.md` | How v2 plays, the tuning numbers, and a map of the code. |
 | `CLAUDE.md` | Project notes for Claude Code if you continue there. |
@@ -46,40 +46,38 @@ To host it as a playable link, turn on GitHub Pages for the repo (Settings → P
 
 | Key | Action |
 |---|---|
-| W / S | Forward / back (always relative to the squirrel) |
-| A / D | Turn. Same on the boat. When climbing, move left/right around the trunk |
+| W / S or ↑ / ↓ | Forward / back (always relative to the squirrel) |
+| A / D or ← / → | Turn. Same on the boat. When climbing, move left/right around the trunk |
 | Space | Jump. Hold while falling to glide |
 | Walk into a trunk | Climb. W up, S down (S near a branch steps onto it), Space leaps off |
 | E | Search a hollow, open the gate, board the boat, go ashore, open the chest |
-| F | Tail-swipe. Landing on a crab also hits it |
-| C | Toggle follow cam / free cam. Drag or arrow keys look around, scroll zooms |
+| F or left click | Tail-swipe. Landing on a crab or the Komodo dragon also hits it; a swipe can bonk a diving hawk |
+| C | Toggle follow cam / free cam. Right-drag (or Ctrl + drag) or Shift + arrow keys look around, scroll zooms |
 | M | Treasure map (once found) |
+| H or ? | Help card with the controls |
 | Esc / P | Pause |
 
 Touch: left thumb drags to move and turn, right thumb drags to look, with Jump, Act and Swipe buttons.
 
 ## Smoke test
 
-`tools/smoke_test.py` drives the game headlessly through the whole loop (gate, voyage, crabs, puzzle leaps, chest) using the `window.__psq` test hook in the page.
+`tools/smoke_test.py` drives the game headlessly through the whole loop (gate, voyage, crabs, puzzle leaps, chest) using the `window.__psq` test hook in the page. It serves the repo over a local HTTP server so GLB assets load, and warns if a GLB in `art/exports/` fell back to its stand-in.
 
 ```bash
 pip install playwright
 playwright install chromium
 python3 tools/smoke_test.py            # tests v2/index.html
 python3 tools/smoke_test.py v1/index.html --screens-only
+python3 tools/screenshots.py            # in-game review shots to art/previews/ingame/
 ```
 
 ## Blender pipeline
 
-Blender can be driven from Python, headless:
+Every asset is built by a Blender script, run headless. The scripts use the shared helpers in `tools/blender/psq_common.py`; each writes `art/exports/<name>.glb` and a preview to `art/previews/<name>.png` (gitignored):
 
 ```bash
-# Option A: Blender as a Python module (needs Python 3.11 for bpy 5.x)
-pip install bpy
-python3 tools/blender/chestnut_demo.py
-
-# Option B: with an installed Blender
-blender -b -P tools/blender/chestnut_demo.py
+blender -b -P tools/blender/twig_boat.py     # also crab.py, squirrel.py, nuts.py, chest.py; lineup.py renders them all
+# Windows: & "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b -P tools\blender\twig_boat.py
 ```
 
-The demo builds a chestnut, renders a preview PNG with Cycles and exports `art/exports/chestnut.glb`. Use it as the template for the real assets. The asset plan is in `DESIGN.md`.
+The asset plan and how to swap a GLB in for a stand-in are in `DESIGN.md`. The asset inventory, budgets and style guide are in `ASSETS.md`.
