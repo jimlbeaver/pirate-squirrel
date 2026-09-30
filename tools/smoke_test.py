@@ -149,6 +149,16 @@ async def main():
         i = await info(); show("sailing", i)
         await E("window.__psq.step(1)")
         await page.screenshot(path=str(OUT / "03_sailing.png"))
+        if await E("!!window.__psq.nuts"):
+            nuts = await E("window.__psq.nuts()")
+            print(f"{'sea nuts':<28} {nuts['stats']}")
+            d = {t: [n["d"] for n in nuts["list"] if n["type"] == t] for t in ("walnut", "acorn", "peanut")}
+            assert all(d.values()), "want walnuts, acorns and peanuts on the course"
+            assert max(d["walnut"]) < min(d["peanut"]), "every walnut should float closer to a hazard than every peanut"
+            w = max((n for n in nuts["list"] if n["type"] == "walnut" and not n["taken"]), key=lambda n: n["d"])
+            gain = await E(f"(()=>{{ const Q=window.__psq; Q.energy(50); Q.tp({w['x']},0.2,{w['z']},'boat'); Q.stepNR(1); return Q.info().energy-50; }})()")
+            print(f"{'sailed through a walnut':<28} energy {gain:+d}")
+            assert 18 <= gain <= 20, "a walnut should give +20"
         await E("window.__psq.tp(6,0.2,176,'boat')"); await E("window.__psq.face(0)")
         await key("KeyW", True); await step(150); await key("KeyW", False); await step(20)
         await press("KeyE"); await step(30)
@@ -163,6 +173,9 @@ async def main():
             await E(f"window.__psq.tp({c['x']+0.9},2,{c['z']},'air')"); await step(20)
             await press("KeyF"); await step(40)
         i = await info(); show("crabs beaten", i)
+        drops = await E("window.__psq.drops()")
+        print(f"{'crab drops':<28} {drops}")
+        assert sorted(d["type"] for d in drops) == ["acorn", "acorn", "acorn", "walnut"], "three acorns and Captain Pinch's walnut"
 
         # 5. puzzle: leap from each correct branch to the next tree
         chain = ["S", "A", "B", "Cc", "T"]
@@ -269,7 +282,7 @@ async def main():
             await step(10)
             if (await info())["platform"] == "nest": break
         await key("KeyW", False)
-        await press("KeyE"); await step(130)
+        await press("KeyE"); await step(160)
         assert await E("!document.getElementById('gag').hidden && document.getElementById('gag2').hidden"), "the 'all D's' line should show first"
         await step(120)
         assert await E("!document.getElementById('gag2').hidden"), "DEEZ NUTS should follow two seconds later"
@@ -285,4 +298,5 @@ async def main():
         await browser.close()
     httpd.shutdown()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

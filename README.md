@@ -4,11 +4,11 @@ Browser game prototype spun off from the Sloppy Beaver Productions pirate squirr
 
 | Folder | What it is |
 |---|---|
-| `v2/` | **Current version (2.2).** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle with decoys, a Komodo dragon below and a hawk above, treasure chest). |
+| `v2/` | **Current version (2.3).** Home Isle (gear, map, Pirates Only gate), the voyage (energy, nuts, hazards), Treasure Island (crab guards, branch-sign puzzle with decoys, a Komodo dragon below and a hawk above, treasure chest). Blender-built art for the squirrel and his gear, the boat, crabs, sea nuts, chest and Chestnut. |
 | `v1/` | First playable greybox, kept as a reference. |
 | `refs/` | Concept art: plain squirrel and full pirate gear. |
 | `vendor/` | Local copies of three.js r128 and its `GLTFLoader`, used automatically if the CDNs are unreachable. |
-| `tools/` | Headless smoke test (Playwright) and a Blender asset-pipeline starter script. |
+| `tools/` | Headless smoke test and review screenshots (Playwright), and the Blender scripts that build every asset. |
 | `PLAN.md` | Original game plan. |
 | `DESIGN.md` | How v2 plays, the tuning numbers, and a map of the code. |
 | `CLAUDE.md` | Project notes for Claude Code if you continue there. |
@@ -68,26 +68,16 @@ pip install playwright
 playwright install chromium
 python3 tools/smoke_test.py            # tests v2/index.html
 python3 tools/smoke_test.py v1/index.html --screens-only
+python3 tools/screenshots.py            # in-game review shots to art/previews/ingame/
 ```
 
 ## Blender pipeline
 
-Blender can be driven from Python, headless:
+Every asset is built by a Blender script, run headless. The scripts use the shared helpers in `tools/blender/psq_common.py`; each writes `art/exports/<name>.glb` and a preview to `art/previews/<name>.png` (gitignored):
 
 ```bash
-# Option A: Blender as a Python module (needs Python 3.11 for bpy 5.x)
-pip install bpy
-python3 tools/blender/chestnut_demo.py
-
-# Option B: with an installed Blender
-blender -b -P tools/blender/chestnut_demo.py
-```
-
-The demo builds a chestnut, renders a preview PNG with Cycles and exports `art/exports/chestnut.glb`. Game assets use the shared helpers in `tools/blender/psq_common.py`; each script writes `art/exports/<name>.glb` and a preview to `art/previews/<name>.png` (gitignored):
-
-```bash
-blender -b -P tools/blender/twig_boat.py
+blender -b -P tools/blender/twig_boat.py     # also crab.py, squirrel.py, nuts.py, chest.py; lineup.py renders them all
 # Windows: & "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b -P tools\blender\twig_boat.py
 ```
 
-The asset plan and how to swap a GLB in for a stand-in are in `DESIGN.md`.
+The asset plan and how to swap a GLB in for a stand-in are in `DESIGN.md`. The asset inventory, budgets and style guide are in `ASSETS.md`.
