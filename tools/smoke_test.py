@@ -180,6 +180,39 @@ async def main():
         k = await E("window.__psq.komodo()"); print(f"{'back on a branch':<28} {k}")
         assert not k["chasing"], "the dragon should give up once the squirrel is off the ground"
 
+        # 6c. hawk: idle on a branch and it knocks you off; a timed swipe makes it miss
+        a = await E("window.__psq.tree('A')"); br = [b for b in a["branches"] if b["chain"] == 1][0]
+        al = br["hl"] - 0.5
+        async def perch():
+            await E(f"window.__psq.tp({br['cx']+br['ux']*al},{br['top']+0.3},{br['cz']+br['uz']*al},'air')")
+            await E(f"window.__psq.face(Math.atan2({br['ux']},{br['uz']}))"); await step(10)
+            assert (await info())["platform"].startswith("A>"), "should be perched on A's branch"
+        async def wait_phase(ph, n=90):
+            for _ in range(n):
+                await step(5)
+                if (await E("window.__psq.hawk()"))["phase"] == ph: return True
+            return False
+        await perch()
+        assert await wait_phase("circle"), "idling on a grove branch should bring the hawk"
+        await step(40); await page.screenshot(path=str(OUT / "04d_hawk.png"))
+        assert await wait_phase("leave", 60), "the hawk should make its pass"
+        await step(60)
+        i = await info(); show("hawk pass", i)
+        assert not (i["platform"] or "").startswith("A>"), "the hawk should knock the squirrel off the branch"
+        assert await wait_phase("none", 40)
+        await perch()
+        # the page's own frame loop keeps running between evaluates, so time the swipe inside one
+        swing = await E("""(()=>{ const Q=window.__psq; for(let n=0;n<900;n++){ const h=Q.hawk(), p=Q.info();
+            if(h.phase==='none'||h.phase==='circle'){ Q.stepNR(1); continue; }
+            if(h.phase!=='dive') return 'missed the dive: '+h.phase;
+            const d=Math.hypot(h.x-p.x,h.y-p.y-0.35,h.z-p.z);
+            if(d<2.0){ Q.key('KeyF',true); Q.stepNR(1); Q.key('KeyF',false); return 'swiped at '+d.toFixed(2); }
+            Q.stepNR(1); } return 'timeout'; })()""")
+        print(f"{'hawk swipe':<28} {swing}")
+        await step(30)
+        i = await info(); show("hawk bonked", i)
+        assert (i["platform"] or "").startswith("A>") and (await E("window.__psq.hawk()"))["phase"] == "leave", "a timed swipe should send the hawk off"
+
         # 7. treasure tree: climb to the nest and open the chest
         t = await E("window.__psq.tree('T')"); lb = t["branches"][0]
         await E(f"window.__psq.tp({lb['cx']},{lb['top']+0.3},{lb['cz']},'air')"); await E(f"window.__psq.face(Math.atan2({-lb['ux']},{-lb['uz']}))"); await step(12)

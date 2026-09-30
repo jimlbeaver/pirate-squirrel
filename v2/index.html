@@ -796,6 +796,8 @@ const drops=[]; { const dg=new THREE.SphereGeometry(0.06,6,4), dm=new THREE.Mesh
   for(let i=0;i<48;i++){ const m=new THREE.Mesh(dg,dm); m.visible=false; scene.add(m); drops.push({m,vx:0,vy:0,vz:0,life:0}); } }
 const sparks=[]; { const sg=new THREE.OctahedronGeometry(0.05);
   for(let i=0;i<40;i++){ const m=new THREE.Mesh(sg,MAT.glint); m.visible=false; scene.add(m); sparks.push({m,vx:0,vy:0,vz:0,life:0}); } }
+const feathers=[]; { const fg=new THREE.PlaneGeometry(0.09,0.2), fm=new THREE.MeshBasicMaterial({color:0x8a5a32,side:THREE.DoubleSide});
+  for(let i=0;i<24;i++){ const m=new THREE.Mesh(fg,fm); m.visible=false; scene.add(m); feathers.push({m,vx:0,vy:0,vz:0,life:0}); } }
 const ringMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
 const splashRing=new THREE.Mesh(new THREE.RingGeometry(0.3,0.44,32),ringMat); splashRing.rotation.x=-Math.PI/2; scene.add(splashRing);
 const swipeMat=new THREE.MeshBasicMaterial({color:0xffd27a,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
@@ -803,7 +805,7 @@ const swipeRing=new THREE.Mesh(new THREE.RingGeometry(0.9,1.3,36,1,0,Math.PI*1.6
 let ringT=9, swipeT=9;
 function burst(pool,x,y,z,n,spd,up){ let c=0; for(const p of pool){ if(p.life>0) continue; const a=Math.random()*TAU, s=spd*(0.4+Math.random()*0.6); p.m.position.set(x,y,z); p.vx=Math.cos(a)*s; p.vz=Math.sin(a)*s; p.vy=up*(0.6+Math.random()*0.6); p.life=0.7+Math.random()*0.4; p.m.visible=true; if(++c>=n) break; } }
 function updateParticles(dt){
-  for(const pool of [drops,sparks]) for(const p of pool){ if(p.life<=0) continue; p.life-=dt; p.vy-=(pool===drops?14:5)*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.rotation.y+=dt*6; if(p.life<=0) p.m.visible=false; }
+  for(const pool of [drops,sparks,feathers]) for(const p of pool){ if(p.life<=0) continue; p.life-=dt; p.vy-=(pool===drops?14:pool===feathers?1.5:5)*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.rotation.y+=dt*6; if(p.life<=0) p.m.visible=false; }
   if(ringT<1){ ringT+=dt; splashRing.scale.setScalar(1+ringT*5); ringMat.opacity=Math.max(0,0.8*(1-ringT)); }
   if(swipeT<0.3){ swipeT+=dt; swipeRing.position.set(P.x,P.y+0.3,P.z); swipeRing.rotation.z=-rig.root.rotation.y+swipeT*14; swipeRing.scale.setScalar(0.8+swipeT*2); swipeMat.opacity=Math.max(0,0.75*(1-swipeT/0.3)); } else swipeMat.opacity=0;
 }
@@ -839,6 +841,8 @@ const SFX=(()=>{
     win(){ [392,523.25,659.25,783.99,659.25,1046.5].forEach((f,i)=>tone(f,0.32,'triangle',0.13,null,i*0.13)); },
     hiss(){ noise(0.55,0.22,3800,0,'highpass'); },
     thud(){ tone(68,0.14,'sine',0.13,42); },
+    screech(){ tone(2600,0.6,'sawtooth',0.045,1500); tone(3100,0.45,'square',0.022,1800,0.06); },
+    whoosh(){ noise(0.6,0.28,1600,0,'bandpass'); },
     chomp(){ noise(0.08,0.35,1200); tone(170,0.09,'square',0.08,90); tone(150,0.1,'square',0.08,80,0.11); },
     deez(){ noise(0.18,0.4,700); [392,392,523.25].forEach((f,i)=>tone(f,0.2,'sawtooth',0.08,null,i*0.12)); tone(783.99,0.7,'square',0.07,null,0.36); noise(0.3,0.3,4000,0.36,'highpass'); }
   };
@@ -917,7 +921,7 @@ function resetGame(){
   gateLeaves.forEach(l=>l.g.rotation.y=0);
   SEA_NUTS.forEach(n=>{ n.taken=false; n.g.visible=true; });
   pickups.forEach(p=>scene.remove(p.g)); pickups.length=0;
-  resetCrabs(true); resetKomodo(); guardsLeft=crabs.length; barT=-1; barricade.visible=true; barLogs.forEach(l=>{ l.visible=true; l.position.copy(l.userData.home.p); l.rotation.copy(l.userData.home.r); });
+  resetCrabs(true); resetKomodo(); resetHawk(); guardsLeft=crabs.length; barT=-1; barricade.visible=true; barLogs.forEach(l=>{ l.visible=true; l.position.copy(l.userData.home.p); l.rotation.copy(l.userData.home.r); });
   assignSymbols();
   const s=spawnPoint(); Object.assign(P,{x:s.x,y:s.y,z:s.z,vx:0,vy:0,vz:0,mode:'ground',facing:Math.atan2(-spawnBranch.ux,-spawnBranch.uz),glide:0,coyote:0,climbCool:0,pinchCool:0,platform:spawnBranch,fromBoat:false,creak:0,attackT:0});
   lastSafe=s;
@@ -1293,7 +1297,7 @@ function exhausted(){
 let koKind='sea';
 function knockOut(){ state='ko'; koT=0; koKind='isle'; toast('Knocked out! You wake up back on the beach.',3,true,true); SFX.slip(); }
 function finishKO(){
-  state='play';
+  state='play'; resetHawk();
   if(koKind==='sea'){
     Object.assign(boat,{x:MOOR.x,z:MOOR.z,h:MOOR.h,speed:0,spin:0}); energy=100; refreshEnergy();
     SEA_NUTS.forEach(n=>{ n.taken=false; n.g.visible=true; });
@@ -1345,6 +1349,7 @@ function tryAttack(){
   attackCool=0.42; P.attackT=0.3; swipeT=0; SFX.swipe();
   for(const c of crabs){ if(c.dead) continue; const d=Math.hypot(c.x-P.x,c.z-P.z); if(d<1.35+0.3*c.scale&&Math.abs(c.y-P.y)<1.0) hitCrab(c); }
   if(komodo.awake&&komodoDist()<1.45&&Math.abs(komodo.y-P.y)<1.0) stunKomodo();
+  bonkHawk();
 }
 function updateCrabs(dt){
   const playerHere=(P.mode==='ground'||P.mode==='air')&&!P.platform&&onTreasure(P.x,P.z)&&state==='play';
@@ -1471,6 +1476,74 @@ function placeKomodo(dt){
   k.tail.forEach((s,i)=>{ s.rotation.y=Math.sin(tAll*(busy?6:1.4)-i*0.8)*(0.15+0.1*i); });
   k.head.rotation.x=k.hiss>0?-0.4:(k.awake&&!k.chasing?-0.25:(k.awake?0:0.12));
   k.tongue.scale.z=k.hiss>0||(k.awake&&Math.sin(tAll*3.1)>0.6)?1:0.01;
+}
+
+/* ================= hawk (Treasure Island branches) ================= */
+// Idle too long on a grove branch and a hawk makes one telegraphed pass: the only way to be knocked off a branch.
+const HAWK={idle:5.0,warn:1.5,circleR:2.5,circleOff:3.5,circleH:2.5,sink:0.8,speed:13,hitR:0.8,knock:5.5,lift:3.5,energy:5,swipeR:2.2,diveT:1.3,leaveT:1.6};
+function buildHawk(){
+  const g=new THREE.Group(); scene.add(g); g.visible=false;
+  const brown=mat(0x6b4526), light=mat(0xd9c29a), beak=mat(0xe8b23d);
+  ball(1,brown,0,0,0,g).scale.set(0.16,0.14,0.36);
+  ball(1,light,0,0.05,0.3,g).scale.set(0.12,0.11,0.13);
+  const bk=mesh(new THREE.ConeGeometry(0.04,0.13,5),beak,0,0.03,0.46,g); bk.rotation.x=Math.PI/2;
+  [-1,1].forEach(s=>ball(0.025,MAT.black,0.07*s,0.09,0.37,g));
+  mesh(new THREE.BoxGeometry(0.26,0.03,0.3),brown,0,0,-0.42,g);
+  const wings=[-1,1].map(s=>{ const w=new THREE.Group(); w.position.set(0.12*s,0.04,0.02); g.add(w); w.userData.s=s;
+    mesh(new THREE.BoxGeometry(0.8,0.03,0.34),brown,0.4*s,0,0,w); mesh(new THREE.BoxGeometry(0.32,0.025,0.24),light,0.94*s,0,-0.04,w); return w; });
+  return {g,wings};
+}
+const hawkShadow=new THREE.Mesh(new THREE.CircleGeometry(0.55,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0,depthWrite:false}));
+hawkShadow.rotation.x=-Math.PI/2; hawkShadow.renderOrder=2; scene.add(hawkShadow);
+const hawk=Object.assign(buildHawk(),{phase:'none',idle:0,t:0,ang:0,x:0,y:0,z:0,dx:0,dy:0,dz:1,ax:0,az:0,af:0});
+const hawkLook=new THREE.Vector3();
+function resetHawk(){ Object.assign(hawk,{phase:'none',idle:0,t:0}); hawk.g.visible=false; hawkShadow.material.opacity=0; }
+function perchedInGrove(){ const p=P.platform; return P.mode==='ground'&&!!p&&p!==nestPlat&&!!p.tree&&p.tree.grove; }
+function hawkLeave(){ const h=hawk, n=Math.hypot(h.dx,h.dz)||1; h.dx/=n; h.dz/=n; h.dy=0.55; h.phase='leave'; h.t=0; }
+function hawkHit(){
+  const h=hawk, b=P.platform;
+  let kx=h.dx, kz=h.dz;
+  if(b&&b.kind==='box'){ const s=(-b.uz*h.dx+b.ux*h.dz)>=0?1:-1; kx=-b.uz*s+h.dx*0.3; kz=b.ux*s+h.dz*0.3; } // sideways, clean off the branch
+  const n=Math.hypot(kx,kz)||1;
+  Object.assign(P,{mode:'air',vx:kx/n*HAWK.knock,vz:kz/n*HAWK.knock,vy:HAWK.lift,platform:null,coyote:0,creak:0,assist:null,glide:GLIDE_MAX});
+  burst(feathers,P.x,P.y+0.4,P.z,14,2.2,2); SFX.hit();
+  hurt(HAWK.energy,once('hawkHit',8)?'WHUMP! The hawk knocks you clean off the branch.':null);
+  hawkLeave(); if(energy<=0) knockOut();
+}
+function bonkHawk(){
+  const h=hawk; if(h.phase!=='dive'||Math.hypot(h.x-P.x,h.y-P.y-0.35,h.z-P.z)>HAWK.swipeR) return;
+  burst(feathers,h.x,h.y,h.z,10,2,1.5); SFX.hit(); hawkLeave();
+  if(once('hawkBonk',20)) toast('Bonk! The hawk flaps off in a huff.',2.4,true);
+}
+function updateHawk(dt){
+  const h=hawk;
+  if(state==='play'){
+    if(h.phase==='none'){
+      if(perchedInGrove()&&Math.hypot(P.x-h.ax,P.z-h.az)<0.3&&Math.abs(angDiff(P.facing,h.af))<0.3) h.idle+=dt;
+      else { h.idle=0; h.ax=P.x; h.az=P.z; h.af=P.facing; }
+      if(h.idle>=HAWK.idle){ h.phase='circle'; h.t=0; h.ang=Math.random()*TAU; h.g.visible=true;
+        // circle on the far side of the squirrel from the camera, so the player sees it wind up
+        const vx=P.x-camera.position.x, vz=P.z-camera.position.z, vn=Math.hypot(vx,vz)||1; h.ox=vx/vn*HAWK.circleOff; h.oz=vz/vn*HAWK.circleOff; SFX.screech(); if(once('hawk',999)) toast('SKREEE! A hawk has spotted you. Keep moving!',3,true,true); }
+    } else if(h.phase==='circle'){
+      h.t+=dt; h.ang+=dt*1.9;
+      h.x=P.x+h.ox+Math.cos(h.ang)*HAWK.circleR; h.z=P.z+h.oz+Math.sin(h.ang)*HAWK.circleR; h.y=P.y+HAWK.circleH-h.t*HAWK.sink;
+      h.dx=-Math.sin(h.ang); h.dy=0; h.dz=Math.cos(h.ang);
+      if(h.t>=HAWK.warn){ const ex=P.x-h.x, ey=P.y+0.35-h.y, ez=P.z-h.z, L=Math.hypot(ex,ey,ez); h.dx=ex/L; h.dy=ey/L; h.dz=ez/L; h.phase='dive'; h.t=0; SFX.whoosh(); }
+    } else {
+      h.t+=dt; const sp=h.phase==='dive'?HAWK.speed:HAWK.speed*0.6;
+      h.x+=h.dx*sp*dt; h.y+=h.dy*sp*dt; h.z+=h.dz*sp*dt;
+      if(h.phase==='dive'){
+        if(P.mode!=='climb'&&Math.hypot(P.x-h.x,P.y+0.35-h.y,P.z-h.z)<HAWK.hitR) hawkHit();
+        else if(h.t>HAWK.diveT) hawkLeave();
+      } else if(h.t>HAWK.leaveT){ resetHawk(); h.ax=P.x; h.az=P.z; h.af=P.facing; }
+    }
+  }
+  if(!h.g.visible) return;
+  h.g.position.set(h.x,h.y,h.z); h.g.lookAt(hawkLook.set(h.x+h.dx,h.y+h.dy,h.z+h.dz));
+  const flap=h.phase==='dive'?0.7:Math.sin(tAll*(h.phase==='leave'?16:5))*0.45;
+  h.wings.forEach(w=>{ w.rotation.z=w.userData.s*flap; });
+  const pl=highestBelow(h.x,h.z,h.y), tg=Math.max(terrainY(h.x,h.z),0.12), gy=pl?Math.max(pl.top,tg):tg;
+  hawkShadow.position.set(h.x,gy+0.04,h.z); hawkShadow.material.opacity=clamp(0.4-(h.y-gy)*0.03,0.1,0.4);
 }
 
 /* ================= interactions ================= */
@@ -1684,7 +1757,7 @@ function update(dt){
     if(winT>GAG_AT+2&&winT-dt<=GAG_AT+2){ $('gag2').hidden=false; SFX.deez(); burst(sparks,chest.position.x,chest.position.y+1,chest.position.z,30,3,6); }
     if(winT>GAG_AT+4.6){ $('gag').hidden=true; state='win'; ui.hud.hidden=true; ui.touch.hidden=true; $('winTime').textContent=fmtTime(elapsed); $('winSplash').textContent=splashes; $('winNuts').textContent=nutsEaten; $('winCrabs').textContent=crabsBeaten; ui.win.hidden=false; setObjective(currentObjective()); }
   }
-  updateCrabs(dt); updateKomodo(dt);
+  updateCrabs(dt); updateKomodo(dt); updateHawk(dt);
   jumpBuffer=Math.max(0,jumpBuffer-dt); actPressed=false; attackPressed=false;
   ui.time.textContent=fmtTime(elapsed);
   animateRig(dt); animateWorld(dt); updateParticles(dt); updateToast(dt);
@@ -1726,7 +1799,8 @@ window.__psq={info:()=>({state,mode:P.mode,x:+P.x.toFixed(2),y:+P.y.toFixed(2),z
   tree:(id)=>{ const t=TREE[id]; return {x:t.x,z:t.z,base:t.base,slick:!!t.slick,climbMin:t.climbMin,climbMax:t.climbMax,branches:t.branches.map(b=>({to:b.to,top:+b.top.toFixed(2),angle:+b.angle.toFixed(3),rotten:b.rotten,chain:b.chain,sym:b.sym,cx:b.cx,cz:b.cz,hl:b.hl,ux:b.ux,uz:b.uz,start:b.start}))}; },
   face:(a)=>{ P.facing=a; cam.yaw=a+Math.PI; rig.root.rotation.y=a; },
   help:()=>{ toggleHelp(); return state; }, reset:()=>startGame(), map:()=>{ if(state==='map') closeMap(); else openMap(); return state; }, seq:()=>seq.slice(), assets:()=>Object.assign({},assetState), gate:()=>({x:gx,z:gz,pierStart,shoreD,pdx,pdz}), moor:()=>MOOR, energy:(e)=>{ energy=e; refreshEnergy(); }, crabs:()=>crabs.map(c=>({x:c.x,z:c.z,hp:c.hp,dead:c.dead})),
-  komodo:(x,z,h)=>{ const k=komodo; if(x!=null){ k.x=x; k.z=z; k.h=h||0; k.y=terrainY(x,z); } return {x:+k.x.toFixed(2),z:+k.z.toFixed(2),h:+k.h.toFixed(2),awake:k.awake,chasing:k.chasing,stun:+k.stun.toFixed(2),lunge:k.lunge>0,hiss:k.hiss>0}; }};
+  komodo:(x,z,h)=>{ const k=komodo; if(x!=null){ k.x=x; k.z=z; k.h=h||0; k.y=terrainY(x,z); } return {x:+k.x.toFixed(2),z:+k.z.toFixed(2),h:+k.h.toFixed(2),awake:k.awake,chasing:k.chasing,stun:+k.stun.toFixed(2),lunge:k.lunge>0,hiss:k.hiss>0}; },
+  hawk:()=>({phase:hawk.phase,idle:+hawk.idle.toFixed(2),x:+hawk.x.toFixed(2),y:+hawk.y.toFixed(2),z:+hawk.z.toFixed(2)})};
 requestAnimationFrame(frame);
 }
 })();
